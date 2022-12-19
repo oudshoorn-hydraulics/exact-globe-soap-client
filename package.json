@@ -10,7 +10,7 @@
     "dependencies": {
         "axios-ntlm": "1.3.0",
         "soap": "github:vpulim/node-soap#cded0c3e7ef7d402fd60dda74a577651353f723e",
-        "xmldom": "^0.6.0",
+        "@xmldom/xmldom": "^0.8.0",
         "zod": "^3.19.1"
     },
     "devDependencies": {
