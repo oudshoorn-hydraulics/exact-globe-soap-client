@@ -110,13 +110,6 @@ export type Config = {
     dbName: string
 }
 
-export enum Mode {
-    single = 1,
-    set = 2,
-    update = 3,
-    metadata = 4
-}
-
 export enum QueryOperator {
     ">" = ">",
     "<" = "<",
@@ -137,13 +130,13 @@ export enum QueryOperator {
 /**
  * Create a soap client instance.
  */
-export async function createClient(mode: Mode, config: Config): Promise<Soap.Client> {
+export async function createClient(mode: "single" | "set" | "update" | "metadata", config: Config): Promise<Soap.Client> {
     let wsdlUrl: string;
     switch (mode) {
-        case Mode.set:
+        case "set":
             wsdlUrl = config.soapHost + "/services/Exact.Entities.EG?singleWsdl";
             break;
-        case Mode.metadata:
+        case "metadata":
             wsdlUrl = config.soapHost + "/services/Exact.Metadata.EG?singleWsdl";
             break;
         default:

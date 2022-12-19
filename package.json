@@ -1,16 +1,19 @@
 {
     "name": "ts-exact-soap-client",
     "description": "A soap client for Exact Globe",
-    "main": "./build/ExactSoap.js",
+    "main": "./lib/ExactSoap.js",
+    "types": "lib/ExactSoap.d.ts",
+    "files": ["lib/**/*"],
     "scripts": {
-        "postinstall": "tsc"
+        "build": "tsc"
     },
     "dependencies": {
         "axios-ntlm": "1.3.0",
         "soap": "github:vpulim/node-soap#cded0c3e7ef7d402fd60dda74a577651353f723e",
-        "wouter": "^2.8.1",
         "xmldom": "^0.6.0",
-        "zod": "^3.19.1",
+        "zod": "^3.19.1"
+    },
+    "devDependencies": {
         "typescript": "^4.7.4",
         "@types/node": "^18.11.11",
         "@types/sax": "^1.2.4"
