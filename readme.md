@@ -2,12 +2,7 @@
 
 Simple wrapper for soap client which enables it to connect to the Exact entity services via the soap interface.
 
-## Dependency issues
-
-- axios-ntlm fixed to 1.3.0, otherwise node_modules/axios-ntlm/node_modules/axios gets updated to 1.2.1.
-- Use dev branche of node-soap, the current version (0.45.0) has type issues when using modules.
-
-## Example: Send sales order line
+## Examples:
 
     import * as soap from "ts-exact-soap-client";
 
@@ -23,6 +18,7 @@ Simple wrapper for soap client which enables it to connect to the Exact entity s
     // Depending on the mode, the correct WSDL file is loaded.
     const client = await soap.createClient("single", soapConfig);
 
+    // Send order line.
     let transactionKey = "";
     let linePropertyData: soap.InputPropertyData[] = [];
     linePropertyData.push({name: "ItemCode", value: "product-sku"});
@@ -30,3 +26,7 @@ Simple wrapper for soap client which enables it to connect to the Exact entity s
 
     transactionKey = await soap.create(client, "SalesOrderLine", linePropertyData);
     // Use transaction key for next line and header.
+
+    // Load product.
+    // Re-use the client to prevent an extra call for the wsdl file.
+    const product = await retrieve(client, "Item", [{name: "ItemCode", value: "itemcode"}]);
