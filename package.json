@@ -1,11 +1,15 @@
 {
     "name": "ts-exact-soap-client",
-    "description": "A soap client for Exact Globe",
+    "version": "1.0.0",
+    "description": "A typescript soap client for Exact Globe",
+    "keywords": ["Exact globe", "entity services", "soap"],
+    "author": "mvdve",
     "main": "./lib/ExactSoap.js",
     "types": "lib/ExactSoap.d.ts",
     "files": ["lib/**/*"],
     "scripts": {
-        "build": "tsc"
+        "build": "tsc",
+        "prepare": "npm run build"
     },
     "dependencies": {
         "axios-ntlm": "1.3.0",

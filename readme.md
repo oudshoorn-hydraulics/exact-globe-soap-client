@@ -15,7 +15,7 @@ Simple wrapper for soap client which enables it to connect to the Exact entity s
         soapHost: "http://192.168.1.1:8010",
         dbHost: "SERVER_NAME\\host_name",
         dbName: "database_name",
-        domain: "domain_name,
+        domain: "domain_name",
         password: "password",
         userId: "username"
     }
