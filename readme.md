@@ -18,7 +18,7 @@ Simple wrapper for soap client which enables it to connect to the Exact entity s
     // Depending on the mode, the correct WSDL file is loaded.
     const client = await soap.createClient("single", soapConfig);
 
-    // Send order line.
+    // Send order line
     let transactionKey = "";
     let linePropertyData: soap.InputPropertyData[] = [];
     linePropertyData.push({name: "ItemCode", value: "product-sku"});
@@ -27,6 +27,12 @@ Simple wrapper for soap client which enables it to connect to the Exact entity s
     transactionKey = await soap.create(client, "SalesOrderLine", linePropertyData);
     // Use transaction key for next line and header.
 
-    // Load product.
+    // Load product
     // Re-use the client to prevent an extra call for the wsdl file.
     const product = await retrieve(client, "Item", [{name: "ItemCode", value: "itemcode"}]);
+
+    // Extract errors from Entity services response
+    if (axios.isAxiosError(err) && err.response) {
+        const message = soap.extractErrorMessage(String(err.response.data));
+        // Use error message
+    }
