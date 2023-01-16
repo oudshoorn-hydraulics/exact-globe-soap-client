@@ -381,8 +381,8 @@ function populateSetArgs(entityName: string, propertyData: InputQueryData[], bat
         return {
             data: {
                 attributes: {"xmlns:i": "http://www.w3.org/2001/XMLSchema-instance"},
-                EntityName: entityName,
                 BatchSize: batchSize,
+                EntityName: entityName,
                 FilterQuery: {
                     Properties: {
                         QueryProperty: queries
