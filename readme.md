@@ -6,6 +6,7 @@ Simple wrapper for soap client which enables it to connect to the Exact entity s
 
 ```typescript
 import * as soap from "ts-exact-soap-client";
+import axios from "axios";
 
 const soapConfig: soap.Config = {
     soapHost: "http://192.168.1.1:8010",

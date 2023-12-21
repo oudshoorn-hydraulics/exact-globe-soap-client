@@ -177,14 +177,14 @@ export async function createClient(mode: "single" | "set" | "update" | "metadata
  *
  * @throws Error
  */
-export async function create(client: Soap.Client, entityName: string, propertyData: InputPropertyData[]): Promise<string> {
+export async function create(client: Soap.Client, entityName: string, propertyData: InputPropertyData[]): Promise<string | undefined> {
     const soapResult = await client.CreateAsync(populateSingleArgs(entityName, propertyData));
 
-    if (soapResult && soapResult[0] !== undefined) {
+    if (soapResult && typeof soapResult[0] !== "undefined") {
         const result = CreateResultSchema.parse(soapResult[0]);
         const propertyData = result.CreateResult.Properties.PropertyData;
 
-        if (propertyData.length !== 0) {
+        if (propertyData.length) {
             for (const data of propertyData) {
                 if (data.Name === "TransactionKey" && data.Value) {
                     return data.Value.$value.toString();
@@ -193,7 +193,7 @@ export async function create(client: Soap.Client, entityName: string, propertyDa
         }
     }
 
-    return "";
+    return;
 }
 
 /**
@@ -205,10 +205,10 @@ export async function create(client: Soap.Client, entityName: string, propertyDa
  *
  * @throws Error
  */
-export async function retrieve(client: Soap.Client, entityName: string, propertyData: InputPropertyData[]): Promise<ResultEntity|null> {
+export async function retrieve(client: Soap.Client, entityName: string, propertyData: InputPropertyData[]): Promise<ResultEntity | undefined> {
     const soapResult = await client.RetrieveAsync(populateSingleArgs(entityName, propertyData));
 
-    if (soapResult && soapResult[0] !== undefined) {
+    if (soapResult && typeof soapResult[0] !== "undefined") {
         const result = RetrieveResultSchema.parse(soapResult[0]);
         const propertyData = result.RetrieveResult.Properties.PropertyData;
 
@@ -216,7 +216,7 @@ export async function retrieve(client: Soap.Client, entityName: string, property
         for (const property of propertyData) {
             if (property.Value &&
                 typeof property.Value.$value === "string" &&
-                property.Value.attributes["i:type"] !== undefined)
+                typeof property.Value.attributes["i:type"] !== "undefined")
             {
                 property.Value.$value = parseExactValue(property.Value.attributes["i:type"], property.Value.$value);
             }
@@ -225,7 +225,7 @@ export async function retrieve(client: Soap.Client, entityName: string, property
         return result.RetrieveResult;
     }
 
-    return null;
+    return;
 }
 
 /**
@@ -250,7 +250,7 @@ export async function retrieveSet(client: Soap.Client, entityName: string, query
            for (const property of entity.Properties.PropertyData) {
                if (property.Value &&
                    typeof property.Value.$value === "string" &&
-                   property.Value.attributes["i:type"] !== undefined)
+                   typeof property.Value.attributes["i:type"] !== "undefined")
                {
                    property.Value.$value = parseExactValue(property.Value.attributes["i:type"], property.Value.$value);
                }
@@ -283,25 +283,25 @@ export async function update(client: Soap.Client, entityName: string, propertyDa
  *
  * @param xml
  */
-export function extractErrorMessage(xml: string): string|null {
+export function extractErrorMessage(xml: string): string | undefined {
     const parser = new DOMParser();
     const xmlDocument = parser.parseFromString(xml, "text/xml");
     // Generic error
     let exceptions = xmlDocument.getElementsByTagName("Exceptions");
 
     // Entity error
-    if (exceptions[0] === undefined) {
+    if (typeof exceptions[0] === "undefined") {
         exceptions = xmlDocument.getElementsByTagName("EntityFault");
     }
 
-    if (exceptions[0] === undefined) {
-        return null;
+    if (typeof exceptions[0] === "undefined") {
+        return;
     }
 
     const messages = exceptions[0].getElementsByTagName("Message");
 
-    if (messages[0] === undefined) {
-        return null;
+    if (typeof messages[0] === "undefined") {
+        return;
     }
 
     return messages[0].childNodes[0].nodeValue;
@@ -346,7 +346,7 @@ function populateSingleArgs(entityName: string, propertyData: InputPropertyData[
         };
     }
 
-    throw new Error("Properties are empty for soap call");
+    throw new Error("No properties supplied for soap call");
 }
 
 /**
@@ -392,7 +392,7 @@ function populateSetArgs(entityName: string, propertyData: InputQueryData[], bat
         };
     }
 
-    throw new Error("Properties are empty for soap call");
+    throw new Error("No queries supplied for soap call");
 }
 
 /**
