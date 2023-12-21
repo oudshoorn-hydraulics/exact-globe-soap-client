@@ -304,7 +304,7 @@ export function extractErrorMessage(xml: string): string | undefined {
         return;
     }
 
-    return messages[0].childNodes[0].nodeValue;
+    return messages[0].childNodes[0].nodeValue ?? undefined;
 }
 
 /**
