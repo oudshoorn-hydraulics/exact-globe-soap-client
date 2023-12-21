@@ -286,25 +286,24 @@ export async function update(client: Soap.Client, entityName: string, propertyDa
 export function extractErrorMessage(xml: string): string | undefined {
     const parser = new DOMParser();
     const xmlDocument = parser.parseFromString(xml, "text/xml");
-    // Generic error
     let exceptions = xmlDocument.getElementsByTagName("Exceptions");
 
-    // Entity error
-    if (typeof exceptions[0] === "undefined") {
+    // When no generic exception is found, look for specific entity errors.
+    if (!exceptions.length || !exceptions.item(0)?.childNodes.length) {
         exceptions = xmlDocument.getElementsByTagName("EntityFault");
     }
 
-    if (typeof exceptions[0] === "undefined") {
+    if (!exceptions.length || !exceptions.item(0)?.childNodes.length) {
         return;
     }
 
-    const messages = exceptions[0].getElementsByTagName("Message");
+    const messages = exceptions.item(0)?.getElementsByTagName("Message");
 
-    if (typeof messages[0] === "undefined") {
+    if (!messages || !messages.length) {
         return;
     }
 
-    return messages[0].childNodes[0].nodeValue ?? undefined;
+    return messages.item(0)?.childNodes.item(0).nodeValue ?? undefined;
 }
 
 /**
