@@ -25,17 +25,22 @@ try {
     linePropertyData.push({name: "ItemCode", value: "product-sku"});
     linePropertyData.push({name: "Quantity", value: 10});
 
+    // Use transaction key when creating an entity, add this key to all the following requests.
     const transactionKey = await soap.create(client, "SalesOrderLine", linePropertyData);
-    // Use transaction key for next line and header.
     
     // Load product
-    // Re-use the client to prevent an extra call for the wsdl file.
     const product = await retrieve(client, "Item", [{name: "ItemCode", value: "itemcode"}]);
 } catch (err) {
     // Extract errors from Entity services response
     if (axios.isAxiosError(err) && err.response) {
-        const message = soap.extractErrorMessage(String(err.response.data));
-        // Use error message
+        if (err.response.status === 401) {
+            // Access denied.
+        }
+        
+        if (err.response.data) {
+            const message = soap.extractErrorMessage(String(err.response.data));
+            // Use error message   
+        }
     }   
 }
 ```

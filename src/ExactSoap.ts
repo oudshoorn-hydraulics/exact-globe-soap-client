@@ -1,4 +1,4 @@
-import * as Soap from 'soap';
+import * as Soap from "soap";
 import {DOMParser} from "@xmldom/xmldom";
 import {z} from "zod";
 
@@ -6,56 +6,56 @@ import {z} from "zod";
  * Soap query types
  */
 export type InputPropertyData = {
-    name: string
-    value: any
-}
+    name: string;
+    value: any;
+};
 
 export type InputQueryData = {
-    name: string
-    value: any
-    operator: QueryOperator
-}
+    name: string;
+    value: any;
+    operator: QueryOperator;
+};
 
 type CallPropertyData = {
-    Name: string
-    NoRights: boolean
+    Name: string;
+    NoRights: boolean;
     Value: {
-        attributes: any
-        $value: any
-    }
-}
+        attributes: any;
+        $value: any;
+    };
+};
 
 type CallPropertyBodyData = {
     data: {
-        attributes: any
-        EntityName: string
+        attributes: any;
+        EntityName: string;
         Properties: {
-            PropertyData: CallPropertyData[]
-        }
-    }
-}
+            PropertyData: CallPropertyData[];
+        };
+    };
+};
 
 type CallQueryData = {
-    Operation: QueryOperator
-    PropertyName: string
+    Operation: QueryOperator;
+    PropertyName: string;
     PropertyValue: {
-        attributes: any
-        $value: any
-    }
-}
+        attributes: any;
+        $value: any;
+    };
+};
 
 type CallQueryBodyData = {
     data: {
-        attributes: any
-        EntityName: string
-        BatchSize: number
+        attributes: any;
+        EntityName: string;
+        BatchSize: number;
         FilterQuery: {
             Properties: {
-                QueryProperty: CallQueryData[]
-            }
-        }
-    }
-}
+                QueryProperty: CallQueryData[];
+            };
+        };
+    };
+};
 
 /**
  * Soap result types
@@ -70,45 +70,45 @@ const ResultEntitySchema = z.object({
                 Value: z.optional(
                     z.object({
                         attributes: z.any(),
-                        $value: z.any()
-                    })
-                )
-            })
-        )
-    })
+                        $value: z.any(),
+                    }),
+                ),
+            }),
+        ),
+    }),
 });
 export type ResultEntity = z.infer<typeof ResultEntitySchema>;
 
 const CreateResultSchema = z.object({
-    CreateResult: ResultEntitySchema
+    CreateResult: ResultEntitySchema,
 });
 export type CreateResult = z.infer<typeof CreateResultSchema>;
 
 const RetrieveResultSchema = z.object({
-    RetrieveResult: ResultEntitySchema
+    RetrieveResult: ResultEntitySchema,
 });
 export type RetrieveResult = z.infer<typeof RetrieveResultSchema>;
 
 const RetrieveSetResultSchema = z.object({
     RetrieveSetResult: z.object({
         Entities: z.object({
-            EntityData: ResultEntitySchema.array()
+            EntityData: ResultEntitySchema.array(),
         }),
         EntityName: z.string(),
-        SessionID: z.number()
-    })
+        SessionID: z.number(),
+    }),
 });
 
 export type RetrieveSetResult = z.infer<typeof RetrieveSetResultSchema>;
 
 export type Config = {
-    soapHost: string
-    userId: string
-    password: string
-    domain: string
-    dbHost: string
-    dbName: string
-}
+    soapHost: string;
+    userId: string;
+    password: string;
+    domain: string;
+    dbHost: string;
+    dbName: string;
+};
 
 export enum QueryOperator {
     ">" = ">",
@@ -124,7 +124,7 @@ export enum QueryOperator {
     isEmpty = "ISEMPTY",
     isNotNull = "ISNOTNULL",
     isNull = "ISNULL",
-    startsWith = "STARTSWITH"
+    startsWith = "STARTSWITH",
 }
 
 /**
@@ -142,25 +142,23 @@ export async function createClient(mode: "single" | "set" | "update" | "metadata
         default:
             wsdlUrl = config.soapHost + "/services/Exact.Entity.EG?singleWsdl";
             break;
-
     }
 
     const options: Soap.IOptions = {
         endpoint: getEndpoint(wsdlUrl),
-        envelopeKey: "soapenv"
-    }
+        envelopeKey: "soapenv",
+    };
 
     const login = {
         username: config.userId,
         password: config.password,
         domain: config.domain,
-    }
+    };
 
     const client = await Soap.createClientAsync(wsdlUrl, options);
     client.setSecurity(new Soap.NTLMSecurity(login));
-    client.addSoapHeader(`<ServerName xmlns="urn:exact.services.entitymodel.backoffice:v1">${config.dbHost}</ServerName>`)
-    client.addSoapHeader(`<DatabaseName xmlns="urn:exact.services.entitymodel.backoffice:v1">${config .dbName}</DatabaseName>`)
-
+    client.addSoapHeader(`<ServerName xmlns="urn:exact.services.entitymodel.backoffice:v1">${config.dbHost}</ServerName>`);
+    client.addSoapHeader(`<DatabaseName xmlns="urn:exact.services.entitymodel.backoffice:v1">${config.dbName}</DatabaseName>`);
 
     return client;
 }
@@ -214,10 +212,7 @@ export async function retrieve(client: Soap.Client, entityName: string, property
 
         // node-soap does not parse $value. Parse it manually.
         for (const property of propertyData) {
-            if (property.Value &&
-                typeof property.Value.$value === "string" &&
-                typeof property.Value.attributes["i:type"] !== "undefined")
-            {
+            if (property.Value && typeof property.Value.$value === "string" && typeof property.Value.attributes["i:type"] !== "undefined") {
                 property.Value.$value = parseExactValue(property.Value.attributes["i:type"], property.Value.$value);
             }
         }
@@ -238,23 +233,20 @@ export async function retrieve(client: Soap.Client, entityName: string, property
  *
  * @throws Error
  */
-export async function retrieveSet(client: Soap.Client, entityName: string, queryData: InputQueryData[], batchSize: number = 10): Promise<ResultEntity[]|null> {
+export async function retrieveSet(client: Soap.Client, entityName: string, queryData: InputQueryData[], batchSize: number = 10): Promise<ResultEntity[] | null> {
     const soapResult = await client.RetrieveSetAsync(populateSetArgs(entityName, queryData, batchSize));
 
-    if (soapResult && soapResult[0] !== undefined) {
+    if (soapResult && typeof soapResult[0] !== "undefined") {
         const result = RetrieveSetResultSchema.parse(soapResult[0]);
         const entityData = result.RetrieveSetResult.Entities.EntityData;
 
         // node-soap does not parse $value. Parse it manually.
         for (const entity of entityData) {
-           for (const property of entity.Properties.PropertyData) {
-               if (property.Value &&
-                   typeof property.Value.$value === "string" &&
-                   typeof property.Value.attributes["i:type"] !== "undefined")
-               {
-                   property.Value.$value = parseExactValue(property.Value.attributes["i:type"], property.Value.$value);
-               }
-           }
+            for (const property of entity.Properties.PropertyData) {
+                if (property.Value && typeof property.Value.$value === "string" && typeof property.Value.attributes["i:type"] !== "undefined") {
+                    property.Value.$value = parseExactValue(property.Value.attributes["i:type"], property.Value.$value);
+                }
+            }
         }
 
         return result.RetrieveSetResult.Entities.EntityData;
@@ -326,9 +318,9 @@ function populateSingleArgs(entityName: string, propertyData: InputPropertyData[
             NoRights: false,
             Value: {
                 attributes: {"i:type": `b:${valueType}`, "xmlns:b": "http://www.w3.org/2001/XMLSchema"},
-                $value: data.value
-            }
-        }
+                $value: data.value,
+            },
+        };
 
         properties.push(property);
     }
@@ -339,9 +331,9 @@ function populateSingleArgs(entityName: string, propertyData: InputPropertyData[
                 attributes: {"xmlns:i": "http://www.w3.org/2001/XMLSchema-instance"},
                 EntityName: entityName,
                 Properties: {
-                    PropertyData: properties
-                }
-            }
+                    PropertyData: properties,
+                },
+            },
         };
     }
 
@@ -369,9 +361,9 @@ function populateSetArgs(entityName: string, propertyData: InputQueryData[], bat
             PropertyName: data.name,
             PropertyValue: {
                 attributes: {"i:type": `b:${valueType}`, "xmlns:b": "http://www.w3.org/2001/XMLSchema"},
-                $value: data.value
-            }
-        }
+                $value: data.value,
+            },
+        };
 
         queries.push(property);
     }
@@ -384,10 +376,10 @@ function populateSetArgs(entityName: string, propertyData: InputQueryData[], bat
                 EntityName: entityName,
                 FilterQuery: {
                     Properties: {
-                        QueryProperty: queries
-                    }
-                }
-            }
+                        QueryProperty: queries,
+                    },
+                },
+            },
         };
     }
 
