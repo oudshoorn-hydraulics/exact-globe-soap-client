@@ -1,6 +1,6 @@
 {
     "name": "ts-exact-soap-client",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "description": "A typescript soap client for Exact Globe",
     "keywords": [
         "Exact globe",
@@ -9,6 +9,7 @@
     ],
     "author": "mvdve",
     "main": "lib/index.js",
+    "type": "module",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/mvdve/ts-exact-soap-client.git"
@@ -30,6 +31,6 @@
         "typescript": "^5.3.3"
     },
     "engines": {
-        "node": ">=22.0.0 <23.0.0"
+        "node": ">=20.0.0 <23.0.0"
     }
 }
