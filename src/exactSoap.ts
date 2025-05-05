@@ -1,60 +1,21 @@
 import * as Soap from "soap";
 import {DOMParser} from "@xmldom/xmldom";
 import {z} from "zod";
+import {parseNumber} from "./utils";
 
 /**
- * Soap query types
+ * Single entity input data.
  */
 export type InputPropertyData = {
     name: string;
-    value: any;
+    value: string | number | boolean;
 };
 
-export type InputQueryData = {
-    name: string;
-    value: any;
+/**
+ * Set entities input data.
+ */
+export type InputSetPropertyData = InputPropertyData & {
     operator: QueryOperator;
-};
-
-type CallPropertyData = {
-    Name: string;
-    NoRights: boolean;
-    Value: {
-        attributes: any;
-        $value: any;
-    };
-};
-
-type CallPropertyBodyData = {
-    data: {
-        attributes: any;
-        EntityName: string;
-        Properties: {
-            PropertyData: CallPropertyData[];
-        };
-    };
-};
-
-type CallQueryData = {
-    Operation: QueryOperator;
-    PropertyName: string;
-    PropertyValue: {
-        attributes: any;
-        $value: any;
-    };
-};
-
-type CallQueryBodyData = {
-    data: {
-        attributes: any;
-        EntityName: string;
-        BatchSize: number;
-        FilterQuery: {
-            Properties: {
-                QueryProperty: CallQueryData[];
-            };
-        };
-    };
 };
 
 /**
@@ -69,8 +30,10 @@ const ResultEntitySchema = z.object({
                 NoRights: z.boolean(),
                 Value: z.optional(
                     z.object({
-                        attributes: z.any(),
-                        $value: z.any(),
+                        attributes: z.object({
+                            "i:type": z.string(),
+                        }),
+                        $value: z.union([z.string(), z.number(), z.boolean()]),
                     }),
                 ),
             }),
@@ -166,26 +129,20 @@ export async function createClient(mode: "single" | "set" | "update" | "metadata
 /**
  * Do a soap call to the Exact Globe entity services.
  *
- * @param client
- * @param entityName
- * @param propertyData
- *
- * @return string
- *   Exact transaction key
- *
  * @throws Error
  */
 export async function create(client: Soap.Client, entityName: string, propertyData: InputPropertyData[]): Promise<string | undefined> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
     const soapResult = await client.CreateAsync(populateSingleArgs(entityName, propertyData));
 
-    if (soapResult && typeof soapResult[0] !== "undefined") {
+    if (soapResult && Array.isArray(soapResult) && soapResult.length) {
         const result = CreateResultSchema.parse(soapResult[0]);
         const propertyData = result.CreateResult.Properties.PropertyData;
 
         if (propertyData.length) {
             for (const data of propertyData) {
-                if (data.Name === "TransactionKey" && data.Value) {
-                    return data.Value.$value.toString();
+                if (data.Name === "TransactionKey" && data.Value && typeof data.Value.$value === "string") {
+                    return data.Value.$value;
                 }
             }
         }
@@ -197,22 +154,19 @@ export async function create(client: Soap.Client, entityName: string, propertyDa
 /**
  * Do a soap call to the Exact Globe entity services.
  *
- * @param client
- * @param entityName
- * @param propertyData
- *
  * @throws Error
  */
 export async function retrieve(client: Soap.Client, entityName: string, propertyData: InputPropertyData[]): Promise<ResultEntity | undefined> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
     const soapResult = await client.RetrieveAsync(populateSingleArgs(entityName, propertyData));
 
-    if (soapResult && typeof soapResult[0] !== "undefined") {
+    if (soapResult && Array.isArray(soapResult) && soapResult.length) {
         const result = RetrieveResultSchema.parse(soapResult[0]);
         const propertyData = result.RetrieveResult.Properties.PropertyData;
 
         // node-soap does not parse $value. Parse it manually.
         for (const property of propertyData) {
-            if (property.Value && typeof property.Value.$value === "string" && typeof property.Value.attributes["i:type"] !== "undefined") {
+            if (property.Value && typeof property.Value.$value === "string") {
                 property.Value.$value = parseExactValue(property.Value.attributes["i:type"], property.Value.$value);
             }
         }
@@ -226,14 +180,10 @@ export async function retrieve(client: Soap.Client, entityName: string, property
 /**
  * Do a soap call to the Exact Globe entity services.
  *
- * @param client
- * @param entityName
- * @param queryData
- * @param batchSize
- *
  * @throws Error
  */
-export async function retrieveSet(client: Soap.Client, entityName: string, queryData: InputQueryData[], batchSize: number = 10): Promise<ResultEntity[] | null> {
+export async function retrieveSet(client: Soap.Client, entityName: string, queryData: InputSetPropertyData[], batchSize: number = 10): Promise<ResultEntity[] | null> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
     const soapResult = await client.RetrieveSetAsync(populateSetArgs(entityName, queryData, batchSize));
 
     if (soapResult && typeof soapResult[0] !== "undefined") {
@@ -243,7 +193,7 @@ export async function retrieveSet(client: Soap.Client, entityName: string, query
         // node-soap does not parse $value. Parse it manually.
         for (const entity of entityData) {
             for (const property of entity.Properties.PropertyData) {
-                if (property.Value && typeof property.Value.$value === "string" && typeof property.Value.attributes["i:type"] !== "undefined") {
+                if (property.Value && typeof property.Value.$value === "string") {
                     property.Value.$value = parseExactValue(property.Value.attributes["i:type"], property.Value.$value);
                 }
             }
@@ -258,22 +208,17 @@ export async function retrieveSet(client: Soap.Client, entityName: string, query
 /**
  * Update an entity within Exact.
  *
- * An update call to Exact does not return any data, just a http code 200.
- *
- * @param client
- * @param entityName
- * @param propertyData
+ * An update call to Exact does not return any data, just an http code 200.
  *
  * @throws Error
  */
 export async function update(client: Soap.Client, entityName: string, propertyData: InputPropertyData[]): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     await client.UpdateAsync(populateSingleArgs(entityName, propertyData));
 }
 
 /**
  * Extract the error message from an Exact response xml object.
- *
- * @param xml
  */
 export function extractErrorMessage(xml: string): string | undefined {
     const parser = new DOMParser();
@@ -298,18 +243,32 @@ export function extractErrorMessage(xml: string): string | undefined {
     return messages.item(0)?.childNodes.item(0).nodeValue ?? undefined;
 }
 
+type CallPropertyData = {
+    Name: string;
+    NoRights: boolean;
+    Value: {
+        attributes: unknown;
+        $value: string | number | boolean;
+    };
+};
+
+type CallPropertyBodyData = {
+    data: {
+        attributes: unknown;
+        EntityName: string;
+        Properties: {
+            PropertyData: CallPropertyData[];
+        };
+    };
+};
+
 /**
- * Map the Soap property data to a valid Exact soap object.
- *
- * @param entityName
- * @param propertyData
+ * Map the Soap property data to a valid Exact soap object with the value type mapped to the attribute.
  *
  * @throws Error
- *
- * @private
  */
 function populateSingleArgs(entityName: string, propertyData: InputPropertyData[]): CallPropertyBodyData {
-    let properties: CallPropertyData[] = [];
+    const properties: CallPropertyData[] = [];
 
     for (const data of propertyData) {
         const valueType = getVarType(data.value);
@@ -340,32 +299,46 @@ function populateSingleArgs(entityName: string, propertyData: InputPropertyData[
     throw new Error("No properties supplied for soap call");
 }
 
+type CallSetPropertyData = {
+    Operation: QueryOperator;
+    PropertyName: string;
+    PropertyValue: {
+        attributes: unknown;
+        $value: string | number | boolean;
+    };
+};
+
+type CallSetPropertyBodyData = {
+    data: {
+        attributes: unknown;
+        EntityName: string;
+        BatchSize: number;
+        FilterQuery: {
+            Properties: {
+                QueryProperty: CallSetPropertyData[];
+            };
+        };
+    };
+};
+
 /**
  * Map the Soap property data to a valid Exact soap object.
  *
- * @param entityName
- * @param propertyData
- * @param batchSize
- *
  * @throws Error
- *
- * @private
  */
-function populateSetArgs(entityName: string, propertyData: InputQueryData[], batchSize: number): CallQueryBodyData {
-    let queries: CallQueryData[] = [];
+function populateSetArgs(entityName: string, propertyData: InputSetPropertyData[], batchSize: number): CallSetPropertyBodyData {
+    const queries: CallSetPropertyData[] = [];
 
     for (const data of propertyData) {
         const valueType = getVarType(data.value);
-        const property: CallQueryData = {
+        queries.push({
             Operation: data.operator,
             PropertyName: data.name,
             PropertyValue: {
                 attributes: {"i:type": `b:${valueType}`, "xmlns:b": "http://www.w3.org/2001/XMLSchema"},
                 $value: data.value,
             },
-        };
-
-        queries.push(property);
+        });
     }
 
     if (queries) {
@@ -389,13 +362,9 @@ function populateSetArgs(entityName: string, propertyData: InputQueryData[], bat
 /**
  * Get the type of value, this is used for the value metadata.
  *
- * @param value
- *
  * @throws Error
- *
- * @private
  */
-function getVarType(value: any): string {
+function getVarType(value: unknown): string {
     if (typeof value === "string") {
         return "string";
     }
@@ -412,8 +381,6 @@ function getVarType(value: any): string {
 /**
  * Get the base url from the wsdl url. This is used to override the host url from the wsdl file.
  * The machine name is used within the wsdl file which can not be called by the soap client.
- *
- * @param soapPath
  */
 function getEndpoint(soapPath: string): string {
     return soapPath.replace("?singleWsdl", "");
@@ -423,15 +390,19 @@ function getEndpoint(soapPath: string): string {
  * Parse an Exact value to the corresponding type from the attribute value.
  * Exact returns strings for all $value variables.
  *
- * @param exactType
- * @param value
+ * When a number type value string is not parsable to number, the original string value is returned.
  */
-function parseExactValue(exactType: string, value: string): any {
+function parseExactValue(exactType: string, value: string): number | boolean | string {
     const type = exactType.trim().replace("b:", "");
     const sanitizedValue = value.trim();
 
     if (type === "int" || type === "double") {
-        return Number(sanitizedValue);
+        const parsedNumber = parseNumber(sanitizedValue);
+        if (!parsedNumber) {
+            return sanitizedValue;
+        }
+
+        return parsedNumber;
     }
     if (type === "boolean" && sanitizedValue.toLowerCase() === "true") {
         return true;
@@ -439,34 +410,10 @@ function parseExactValue(exactType: string, value: string): any {
     if (type === "boolean" && sanitizedValue.toLowerCase() === "false") {
         return false;
     }
-    // Use time as string, parse to Date when necessary.
+
+    // Ignore dateTime.
     if (type === "dateTime") {
         return sanitizedValue;
-    }
-
-    return sanitizedValue;
-}
-
-/**
- * The node-soap module does not always parse values correctly, this helper function will parse
- * a string into the correct type.
- *
- * @param value
- */
-export function parseString(value: string): any {
-    const sanitizedValue = value.trim();
-    const number = Number(sanitizedValue);
-    // Number will parse an empty string to 0.
-    if (sanitizedValue !== "" && !Number.isNaN(number)) {
-        return number;
-    }
-
-    if (sanitizedValue.toLowerCase() === "true") {
-        return true;
-    }
-
-    if (sanitizedValue.toLowerCase() === "false") {
-        return false;
     }
 
     return sanitizedValue;
