@@ -186,7 +186,7 @@ export async function retrieveSet(client: Soap.Client, entityName: string, query
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
     const soapResult = await client.RetrieveSetAsync(populateSetArgs(entityName, queryData, batchSize));
 
-    if (soapResult && typeof soapResult[0] !== "undefined") {
+    if (soapResult && Array.isArray(soapResult) && soapResult.length) {
         const result = RetrieveSetResultSchema.parse(soapResult[0]);
         const entityData = result.RetrieveSetResult.Entities.EntityData;
 
