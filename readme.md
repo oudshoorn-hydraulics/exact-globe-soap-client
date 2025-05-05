@@ -19,7 +19,7 @@ npm install @mvdve/mssql-query-builder
 ## Examples:
 
 ```typescript
-import * as soap from "ts-exact-soap-client";
+import {soap} from "ts-exact-soap-client";
 import axios from "axios";
 
 const soapConfig: soap.Config = {
