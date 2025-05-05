@@ -1,6 +1,20 @@
-# Exact Globe soap client
+# Typescript / Javascript Exact Globe soap client
 
 Simple wrapper for soap client which enables it to connect to the Exact entity services via the soap interface.
+
+## Installation:
+
+This package is hosted on GitHub, to install it, create a .npmrc with the custom GitHub namespace:
+
+```
+registry=https://registry.npmjs.org
+@mvdve:registry=https://npm.pkg.github.com
+```
+
+Then run:
+```
+npm install @mvdve/mssql-query-builder
+```
 
 ## Examples:
 

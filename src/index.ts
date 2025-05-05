@@ -1,1 +1,1 @@
-export * as soap from "./ExactSoap";
+export * as soap from "./exactSoap";
