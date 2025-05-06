@@ -131,7 +131,7 @@ export async function createClient(mode: "single" | "set" | "update" | "metadata
  *
  * @throws Error
  */
-export async function create(client: Soap.Client, entityName: string, propertyData: InputPropertyData[]): Promise<string | undefined> {
+export async function create(client: Soap.Client, entityName: string, propertyData: InputPropertyData[], returnProperty = "TransactionKey"): Promise<string | undefined> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
     const soapResult = await client.CreateAsync(populateSingleArgs(entityName, propertyData));
 
@@ -141,7 +141,7 @@ export async function create(client: Soap.Client, entityName: string, propertyDa
 
         if (propertyData.length) {
             for (const data of propertyData) {
-                if (data.Name === "TransactionKey" && data.Value && typeof data.Value.$value === "string") {
+                if (data.Name === returnProperty && data.Value && typeof data.Value.$value === "string") {
                     return data.Value.$value;
                 }
             }
