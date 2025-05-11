@@ -13,7 +13,7 @@ registry=https://registry.npmjs.org
 
 Then run:
 ```
-npm install @mvdve/mssql-query-builder
+npm install @mvdve/exact-globe-soap-client
 ```
 
 ## Examples:

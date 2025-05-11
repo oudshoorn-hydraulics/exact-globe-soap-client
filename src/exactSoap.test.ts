@@ -21,12 +21,15 @@ describe("Exact soap client", async () => {
         linePropertyData.push({name: "ItemCode", value: "product-sku"});
         linePropertyData.push({name: "Quantity", value: 10});
 
-        const transactionKey = await create(client, "SalesOrderLine", linePropertyData);
+        const result = await create(client, "SalesOrderLine", linePropertyData);
 
-        expect(transactionKey).toBeDefined();
+        expect(result.success).toBe(true);
+        if (result.success) {
+            expect(result.data).toBeTypeOf("string");
+        }
     });
 
-    test("Retreive single entity", async () => {
+    test("Retrieve single entity", async () => {
         const linePropertyData: InputPropertyData[] = [{name: "ItemCode", value: "P1.10010"}];
         const result = await retrieve(client, "Item", linePropertyData);
 

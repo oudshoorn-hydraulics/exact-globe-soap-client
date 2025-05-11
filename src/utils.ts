@@ -1,5 +1,18 @@
 import util from "util";
 
+export type ExactResult<T> =
+    | {
+          success: true;
+          data: T;
+      }
+    | {
+          success: false;
+          error: string;
+          statusCode?: number;
+          exactError?: string;
+          exception?: unknown;
+      };
+
 export function parseNumber(value: string): number | undefined {
     const rawNumber = parseFloat(value);
 

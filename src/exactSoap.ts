@@ -1,7 +1,9 @@
 import * as Soap from "soap";
-import {DOMParser} from "@xmldom/xmldom";
 import {z} from "zod";
 import {parseNumber} from "./utils";
+import {exceptionResult} from "./exception";
+
+import type {ExactResult} from "./utils";
 
 /**
  * Single entity input data.
@@ -131,24 +133,35 @@ export async function createClient(mode: "single" | "set" | "update" | "metadata
  *
  * @throws Error
  */
-export async function create(client: Soap.Client, entityName: string, propertyData: InputPropertyData[], returnProperty = "TransactionKey"): Promise<string | undefined> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-    const soapResult = await client.CreateAsync(populateSingleArgs(entityName, propertyData));
+// prettier-ignore
+export async function create(client: Soap.Client, entityName: string, propertyData: InputPropertyData[], returnProperty = "TransactionKey"): Promise<ExactResult<string | undefined>> {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+        const soapResult = await client.CreateAsync(populateSingleArgs(entityName, propertyData));
 
-    if (soapResult && Array.isArray(soapResult) && soapResult.length) {
-        const result = CreateResultSchema.parse(soapResult[0]);
-        const propertyData = result.CreateResult.Properties.PropertyData;
+        if (soapResult && Array.isArray(soapResult) && soapResult.length) {
+            const result = CreateResultSchema.parse(soapResult[0]);
+            const propertyData = result.CreateResult.Properties.PropertyData;
 
-        if (propertyData.length) {
-            for (const data of propertyData) {
-                if (data.Name === returnProperty && data.Value && typeof data.Value.$value === "string") {
-                    return data.Value.$value;
+            if (propertyData.length) {
+                for (const data of propertyData) {
+                    if (data.Name === returnProperty && data.Value && typeof data.Value.$value === "string") {
+                        return {
+                            success: true,
+                            data: data.Value.$value,
+                        };
+                    }
                 }
             }
         }
+    } catch (err) {
+        return exceptionResult(err);
     }
 
-    return;
+    return {
+        success: false,
+        error: `Could not extract return property '${returnProperty}' from Exact response`,
+    };
 }
 
 /**
@@ -182,7 +195,7 @@ export async function retrieve(client: Soap.Client, entityName: string, property
  *
  * @throws Error
  */
-export async function retrieveSet(client: Soap.Client, entityName: string, queryData: InputSetPropertyData[], batchSize: number = 10): Promise<ResultEntity[] | null> {
+export async function retrieveSet(client: Soap.Client, entityName: string, queryData: InputSetPropertyData[], batchSize: number = 10): Promise<ResultEntity[] | undefined> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
     const soapResult = await client.RetrieveSetAsync(populateSetArgs(entityName, queryData, batchSize));
 
@@ -202,7 +215,7 @@ export async function retrieveSet(client: Soap.Client, entityName: string, query
         return result.RetrieveSetResult.Entities.EntityData;
     }
 
-    return null;
+    return;
 }
 
 /**
@@ -215,32 +228,6 @@ export async function retrieveSet(client: Soap.Client, entityName: string, query
 export async function update(client: Soap.Client, entityName: string, propertyData: InputPropertyData[]): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     await client.UpdateAsync(populateSingleArgs(entityName, propertyData));
-}
-
-/**
- * Extract the error message from an Exact response xml object.
- */
-export function extractErrorMessage(xml: string): string | undefined {
-    const parser = new DOMParser();
-    const xmlDocument = parser.parseFromString(xml, "text/xml");
-    let exceptions = xmlDocument.getElementsByTagName("Exceptions");
-
-    // When no generic exception is found, look for specific entity errors.
-    if (!exceptions.length || !exceptions.item(0)?.childNodes.length) {
-        exceptions = xmlDocument.getElementsByTagName("EntityFault");
-    }
-
-    if (!exceptions.length || !exceptions.item(0)?.childNodes.length) {
-        return;
-    }
-
-    const messages = exceptions.item(0)?.getElementsByTagName("Message");
-
-    if (!messages || !messages.length) {
-        return;
-    }
-
-    return messages.item(0)?.childNodes.item(0).nodeValue ?? undefined;
 }
 
 type CallPropertyData = {
