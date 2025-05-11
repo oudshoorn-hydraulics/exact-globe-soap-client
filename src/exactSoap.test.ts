@@ -15,13 +15,16 @@ describe("Exact soap client", async () => {
     };
 
     const client = await createClient("single", soapConfig);
+    if (!client.success) {
+        return;
+    }
 
     test("Create single entity", async () => {
         const linePropertyData: InputPropertyData[] = [];
         linePropertyData.push({name: "ItemCode", value: "product-sku"});
         linePropertyData.push({name: "Quantity", value: 10});
 
-        const result = await create(client, "SalesOrderLine", linePropertyData);
+        const result = await create(client.data, "SalesOrderLine", linePropertyData);
 
         expect(result.success).toBe(true);
         if (result.success) {
@@ -31,7 +34,7 @@ describe("Exact soap client", async () => {
 
     test("Retrieve single entity", async () => {
         const linePropertyData: InputPropertyData[] = [{name: "ItemCode", value: "P1.10010"}];
-        const result = await retrieve(client, "Item", linePropertyData);
+        const result = await retrieve(client.data, "Item", linePropertyData);
 
         expect(result.success).toBe(true);
         if (result.success) {
