@@ -30,31 +30,34 @@ const soapConfig: soap.Config = {
     password: "password",
     userId: "username"
 }
-try {
-    // Depending on the mode, the correct WSDL file is loaded.
-    const client = await soap.createClient("single", soapConfig);
-    
-    // Send order line
-    const linePropertyData: soap.InputPropertyData[] = [];
-    linePropertyData.push({name: "ItemCode", value: "product-sku"});
-    linePropertyData.push({name: "Quantity", value: 10});
 
-    // Use transaction key when creating an entity, add this key to all the following requests.
-    const transactionKey = await soap.create(client, "SalesOrderLine", linePropertyData);
-    
-    // Load product
-    const product = await retrieve(client, "Item", [{name: "ItemCode", value: "itemcode"}]);
-} catch (err) {
-    // Extract errors from Entity services response
-    if (axios.isAxiosError(err) && err.response) {
-        if (err.response.status === 401) {
-            // Access denied.
-        }
-        
-        if (err.response.data) {
-            const message = soap.extractErrorMessage(String(err.response.data));
-            // Use error message   
-        }
-    }   
+// Depending on the mode, the correct WSDL file is loaded.
+const client = await soap.createClient("single", soapConfig);
+if (!client.success) {
+    // handle error from ExactResult, available variables:
+    //
+    // error: string;
+    // exactError?: string;
+    // statusCode?: number;
+    // exception?: unknown;
+}
+
+// Send order line
+const linePropertyData: soap.InputPropertyData[] = [];
+linePropertyData.push({name: "ItemCode", value: "product-sku"});
+linePropertyData.push({name: "Quantity", value: 10});
+
+const result = await soap.create(client.data, "SalesOrderLine", linePropertyData);
+if (!result.success) {
+    // handle error.
+}
+
+// Use the transaction key for the next order line or header.
+const transactionKey = result.data;
+
+// Load product
+const result = await retrieve(client.data, "Item", [{name: "ItemCode", value: "itemcode"}]);
+if (!result.success) {
+    // handle error.
 }
 ```

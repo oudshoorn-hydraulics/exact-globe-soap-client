@@ -8,8 +8,8 @@ export type ExactResult<T> =
     | {
           success: false;
           error: string;
-          statusCode?: number;
           exactError?: string;
+          statusCode?: number;
           exception?: unknown;
       };
 
