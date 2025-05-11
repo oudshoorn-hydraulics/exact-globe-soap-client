@@ -95,7 +95,7 @@ export enum QueryOperator {
 /**
  * Create a soap client instance.
  */
-export async function createClient(mode: "single" | "set" | "update" | "metadata", config: Config): Promise<Soap.Client> {
+export async function createClient(mode: "single" | "set" | "update" | "metadata", config: Config): Promise<ExactResult<Soap.Client>> {
     let wsdlUrl: string;
     switch (mode) {
         case "set":
@@ -120,12 +120,19 @@ export async function createClient(mode: "single" | "set" | "update" | "metadata
         domain: config.domain,
     };
 
-    const client = await Soap.createClientAsync(wsdlUrl, options);
-    client.setSecurity(new Soap.NTLMSecurity(login));
-    client.addSoapHeader(`<ServerName xmlns="urn:exact.services.entitymodel.backoffice:v1">${config.dbHost}</ServerName>`);
-    client.addSoapHeader(`<DatabaseName xmlns="urn:exact.services.entitymodel.backoffice:v1">${config.dbName}</DatabaseName>`);
+    try {
+        const client = await Soap.createClientAsync(wsdlUrl, options);
+        client.setSecurity(new Soap.NTLMSecurity(login));
+        client.addSoapHeader(`<ServerName xmlns="urn:exact.services.entitymodel.backoffice:v1">${config.dbHost}</ServerName>`);
+        client.addSoapHeader(`<DatabaseName xmlns="urn:exact.services.entitymodel.backoffice:v1">${config.dbName}</DatabaseName>`);
 
-    return client;
+        return {
+            success: true,
+            data: client,
+        };
+    } catch (err) {
+        return exceptionResult(err);
+    }
 }
 
 /**
@@ -169,65 +176,91 @@ export async function create(client: Soap.Client, entityName: string, propertyDa
  *
  * @throws Error
  */
-export async function retrieve(client: Soap.Client, entityName: string, propertyData: InputPropertyData[]): Promise<ResultEntity | undefined> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-    const soapResult = await client.RetrieveAsync(populateSingleArgs(entityName, propertyData));
+export async function retrieve(client: Soap.Client, entityName: string, propertyData: InputPropertyData[]): Promise<ExactResult<ResultEntity | undefined>> {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+        const soapResult = await client.RetrieveAsync(populateSingleArgs(entityName, propertyData));
 
-    if (soapResult && Array.isArray(soapResult) && soapResult.length) {
-        const result = RetrieveResultSchema.parse(soapResult[0]);
-        const propertyData = result.RetrieveResult.Properties.PropertyData;
+        if (soapResult && Array.isArray(soapResult) && soapResult.length) {
+            const result = RetrieveResultSchema.parse(soapResult[0]);
+            const propertyData = result.RetrieveResult.Properties.PropertyData;
 
-        // node-soap does not parse $value. Parse it manually.
-        for (const property of propertyData) {
-            if (property.Value && typeof property.Value.$value === "string") {
-                property.Value.$value = parseExactValue(property.Value.attributes["i:type"], property.Value.$value);
-            }
-        }
-
-        return result.RetrieveResult;
-    }
-
-    return;
-}
-
-/**
- * Do a soap call to the Exact Globe entity services.
- *
- * @throws Error
- */
-export async function retrieveSet(client: Soap.Client, entityName: string, queryData: InputSetPropertyData[], batchSize: number = 10): Promise<ResultEntity[] | undefined> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-    const soapResult = await client.RetrieveSetAsync(populateSetArgs(entityName, queryData, batchSize));
-
-    if (soapResult && Array.isArray(soapResult) && soapResult.length) {
-        const result = RetrieveSetResultSchema.parse(soapResult[0]);
-        const entityData = result.RetrieveSetResult.Entities.EntityData;
-
-        // node-soap does not parse $value. Parse it manually.
-        for (const entity of entityData) {
-            for (const property of entity.Properties.PropertyData) {
+            // node-soap does not parse $value. Parse it manually.
+            for (const property of propertyData) {
                 if (property.Value && typeof property.Value.$value === "string") {
                     property.Value.$value = parseExactValue(property.Value.attributes["i:type"], property.Value.$value);
                 }
             }
+
+            return {
+                success: true,
+                data: result.RetrieveResult,
+            };
         }
 
-        return result.RetrieveSetResult.Entities.EntityData;
+        return {
+            success: false,
+            error: "No results returned by entity services.",
+        };
+    } catch (err) {
+        return exceptionResult(err);
     }
+}
 
-    return;
+/**
+ * Do a soap call to the Exact Globe entity services.
+ */
+// prettier-ignore
+export async function retrieveSet(client: Soap.Client, entityName: string, queryData: InputSetPropertyData[], batchSize: number = 10): Promise<ExactResult<ResultEntity[] | undefined>> {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+        const soapResult = await client.RetrieveSetAsync(populateSetArgs(entityName, queryData, batchSize));
+
+        if (soapResult && Array.isArray(soapResult) && soapResult.length) {
+            const result = RetrieveSetResultSchema.parse(soapResult[0]);
+            const entityData = result.RetrieveSetResult.Entities.EntityData;
+
+            // node-soap does not parse $value. Parse it manually.
+            for (const entity of entityData) {
+                for (const property of entity.Properties.PropertyData) {
+                    if (property.Value && typeof property.Value.$value === "string") {
+                        property.Value.$value = parseExactValue(property.Value.attributes["i:type"], property.Value.$value);
+                    }
+                }
+            }
+
+            return {
+                success: true,
+                data: result.RetrieveSetResult.Entities.EntityData,
+            };
+        }
+
+        return {
+            success: false,
+            error: "No results returned by entity services.",
+        };
+    } catch (err) {
+        return exceptionResult(err);
+    }
 }
 
 /**
  * Update an entity within Exact.
  *
  * An update call to Exact does not return any data, just an http code 200.
- *
- * @throws Error
  */
-export async function update(client: Soap.Client, entityName: string, propertyData: InputPropertyData[]): Promise<void> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-    await client.UpdateAsync(populateSingleArgs(entityName, propertyData));
+export async function update(client: Soap.Client, entityName: string, propertyData: InputPropertyData[]): Promise<ExactResult<undefined>> {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        await client.UpdateAsync(populateSingleArgs(entityName, propertyData));
+
+        return {
+            success: true,
+            data: undefined,
+        };
+    } catch (err) {
+        return exceptionResult(err);
+    }
 }
 
 type CallPropertyData = {

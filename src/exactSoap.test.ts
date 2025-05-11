@@ -33,6 +33,9 @@ describe("Exact soap client", async () => {
         const linePropertyData: InputPropertyData[] = [{name: "ItemCode", value: "P1.10010"}];
         const result = await retrieve(client, "Item", linePropertyData);
 
-        expect(result).toBeTypeOf("object");
+        expect(result.success).toBe(true);
+        if (result.success) {
+            expect(result.data).toBeTypeOf("object");
+        }
     });
 });
