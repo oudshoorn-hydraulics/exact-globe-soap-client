@@ -1,8 +1,8 @@
 import "dotenv/config";
-import {createClient, create, retrieve} from "./exactSoap";
+import {createClient, create, retrieve} from "../exactSoap";
 import {describe, expect, test} from "vitest";
 
-import type {Config, InputPropertyData} from "./exactSoap";
+import type {Config, InputPropertyData} from "../exactSoap";
 
 describe("Exact soap client", async () => {
     const soapConfig: Config = {
@@ -15,6 +15,9 @@ describe("Exact soap client", async () => {
     };
 
     const client = await createClient("single", soapConfig);
+    test("Init client", () => {
+        expect(client.success).toBe(true);
+    });
     if (!client.success) {
         return;
     }
