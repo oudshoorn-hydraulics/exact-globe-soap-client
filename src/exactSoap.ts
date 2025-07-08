@@ -12,7 +12,7 @@ import type {Result} from "neverthrow";
  */
 export type InputPropertyData = {
     name: string;
-    value: string | number | boolean;
+    value: string | number | boolean | null;
 };
 
 /**
@@ -226,7 +226,7 @@ export async function retrieveSet(client: Soap.Client, entityName: string, query
 /**
  * Update an entity within Exact.
  *
- * An update call to Exact does not return any data, just an http code 200.
+ * An update call to Exact does not return any data, just a http code 200.
  */
 export async function update(client: Soap.Client, entityName: string, propertyData: InputPropertyData[]): Promise<Result<undefined, ExactError>> {
     try {
@@ -244,7 +244,7 @@ type CallPropertyData = {
     NoRights: boolean;
     Value: {
         attributes: unknown;
-        $value: string | number | boolean;
+        $value: string | number | boolean | null;
     };
 };
 
@@ -280,7 +280,7 @@ function populateSingleArgs(entityName: string, propertyData: InputPropertyData[
         properties.push(property);
     }
 
-    if (properties) {
+    if (properties.length) {
         return {
             data: {
                 attributes: {"xmlns:i": "http://www.w3.org/2001/XMLSchema-instance"},
@@ -300,7 +300,7 @@ type CallSetPropertyData = {
     PropertyName: string;
     PropertyValue: {
         attributes: unknown;
-        $value: string | number | boolean;
+        $value: string | number | boolean | null;
     };
 };
 
@@ -361,7 +361,7 @@ function populateSetArgs(entityName: string, propertyData: InputSetPropertyData[
  * @throws Error
  */
 function getVarType(value: unknown): string {
-    if (typeof value === "string") {
+    if (typeof value === "string" || value === null) {
         return "string";
     }
     if (typeof value === "boolean") {
