@@ -1,6 +1,6 @@
 {
     "name": "@mvdve/exact-globe-soap-client",
-    "version": "1.4.0",
+    "version": "1.4.1",
     "description": "A typescript/javascript soap client for Exact Globe",
     "keywords": [
         "Exact globe",
