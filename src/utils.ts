@@ -1,17 +1,11 @@
 import util from "util";
 
-export type ExactResult<T> =
-    | {
-          success: true;
-          data: T;
-      }
-    | {
-          success: false;
-          error: string;
-          exactError?: string;
-          statusCode?: number;
-          exception?: unknown;
-      };
+export type ExactError = {
+    error: string;
+    exactError?: string;
+    statusCode?: number;
+    exception?: unknown;
+};
 
 export function parseNumber(value: string): number | undefined {
     const rawNumber = parseFloat(value);

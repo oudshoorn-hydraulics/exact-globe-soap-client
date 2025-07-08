@@ -1,6 +1,4 @@
 // @ts-check
-
-import globals from "globals";
 import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
 import {plugin as ex} from "eslint-plugin-exception-handling";
@@ -12,7 +10,6 @@ export default tseslint.config(
     tseslint.configs.recommendedTypeChecked,
     {
         languageOptions: {
-            globals: globals.browser,
             parserOptions: {
                 projectService: true,
                 tsconfigRootDir: import.meta.dirname,

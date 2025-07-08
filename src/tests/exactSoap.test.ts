@@ -1,8 +1,8 @@
 import "dotenv/config";
-import {createClient, create, retrieve} from "./exactSoap";
+import {createClient, create, retrieve} from "../exactSoap";
 import {describe, expect, test} from "vitest";
 
-import type {Config, InputPropertyData} from "./exactSoap";
+import type {Config, InputPropertyData} from "../exactSoap";
 
 describe("Exact soap client", async () => {
     const soapConfig: Config = {
@@ -15,8 +15,12 @@ describe("Exact soap client", async () => {
     };
 
     const client = await createClient("single", soapConfig);
-    if (!client.success) {
-        return;
+    test("Init client", () => {
+        expect(client.isOk()).toBe(true);
+    });
+
+    if (client.isErr()) {
+        throw new Error(client.error.exactError);
     }
 
     test("Create single entity", async () => {
@@ -24,21 +28,22 @@ describe("Exact soap client", async () => {
         linePropertyData.push({name: "ItemCode", value: "product-sku"});
         linePropertyData.push({name: "Quantity", value: 10});
 
-        const result = await create(client.data, "SalesOrderLine", linePropertyData);
-
-        expect(result.success).toBe(true);
-        if (result.success) {
-            expect(result.data).toBeTypeOf("string");
+        const result = await create(client.value, "SalesOrderLine", linePropertyData);
+        if (result.isErr()) {
+            throw new Error(result.error.exactError);
         }
+
+        expect(result.value).toBeTypeOf("string");
     });
 
     test("Retrieve single entity", async () => {
         const linePropertyData: InputPropertyData[] = [{name: "ItemCode", value: "P1.10010"}];
-        const result = await retrieve(client.data, "Item", linePropertyData);
 
-        expect(result.success).toBe(true);
-        if (result.success) {
-            expect(result.data).toBeTypeOf("object");
+        const result = await retrieve(client.value, "Item", linePropertyData);
+        if (result.isErr()) {
+            throw new Error(result.error.exactError);
         }
+
+        expect(result.value).toBeTypeOf("object");
     });
 });
