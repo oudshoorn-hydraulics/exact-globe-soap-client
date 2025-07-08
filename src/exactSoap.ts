@@ -2,8 +2,10 @@ import * as Soap from "soap";
 import {z} from "zod";
 import {parseNumber} from "./utils";
 import {exceptionResult} from "./exception";
+import {err, ok} from "neverthrow";
 
-import type {ExactResult} from "./utils";
+import type {ExactError} from "./utils";
+import type {Result} from "neverthrow";
 
 /**
  * Single entity input data.
@@ -95,7 +97,7 @@ export enum QueryOperator {
 /**
  * Create a soap client instance.
  */
-export async function createClient(mode: "single" | "set" | "update" | "metadata", config: Config): Promise<ExactResult<Soap.Client>> {
+export async function createClient(mode: "single" | "set" | "update" | "metadata", config: Config): Promise<Result<Soap.Client, ExactError>> {
     let wsdlUrl: string;
     switch (mode) {
         case "set":
@@ -126,22 +128,17 @@ export async function createClient(mode: "single" | "set" | "update" | "metadata
         client.addSoapHeader(`<ServerName xmlns="urn:exact.services.entitymodel.backoffice:v1">${config.dbHost}</ServerName>`);
         client.addSoapHeader(`<DatabaseName xmlns="urn:exact.services.entitymodel.backoffice:v1">${config.dbName}</DatabaseName>`);
 
-        return {
-            success: true,
-            data: client,
-        };
-    } catch (err) {
-        return exceptionResult(err);
+        return ok(client);
+    } catch (ex) {
+        return err(exceptionResult(ex));
     }
 }
 
 /**
  * Do a soap call to the Exact Globe entity services.
- *
- * @throws Error
  */
 // prettier-ignore
-export async function create(client: Soap.Client, entityName: string, propertyData: InputPropertyData[], returnProperty = "TransactionKey"): Promise<ExactResult<string | undefined>> {
+export async function create(client: Soap.Client, entityName: string, propertyData: InputPropertyData[], returnProperty = "TransactionKey"): Promise<Result<string | undefined, ExactError>> {
     try {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
         const soapResult = await client.CreateAsync(populateSingleArgs(entityName, propertyData));
@@ -153,22 +150,16 @@ export async function create(client: Soap.Client, entityName: string, propertyDa
             if (propertyData.length) {
                 for (const data of propertyData) {
                     if (data.Name === returnProperty && data.Value && typeof data.Value.$value === "string") {
-                        return {
-                            success: true,
-                            data: data.Value.$value,
-                        };
+                        return ok(data.Value.$value);
                     }
                 }
             }
         }
-    } catch (err) {
-        return exceptionResult(err);
+    } catch (ex) {
+        return err(exceptionResult(ex));
     }
 
-    return {
-        success: false,
-        error: `Could not extract return property '${returnProperty}' from Exact response`,
-    };
+    return err({error: `Could not extract return property '${returnProperty}' from Exact response`});
 }
 
 /**
@@ -176,7 +167,7 @@ export async function create(client: Soap.Client, entityName: string, propertyDa
  *
  * @throws Error
  */
-export async function retrieve(client: Soap.Client, entityName: string, propertyData: InputPropertyData[]): Promise<ExactResult<ResultEntity | undefined>> {
+export async function retrieve(client: Soap.Client, entityName: string, propertyData: InputPropertyData[]): Promise<Result<ResultEntity | undefined, ExactError>> {
     try {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
         const soapResult = await client.RetrieveAsync(populateSingleArgs(entityName, propertyData));
@@ -192,18 +183,12 @@ export async function retrieve(client: Soap.Client, entityName: string, property
                 }
             }
 
-            return {
-                success: true,
-                data: result.RetrieveResult,
-            };
+            return ok(result.RetrieveResult);
         }
 
-        return {
-            success: false,
-            error: "No results returned by entity services.",
-        };
-    } catch (err) {
-        return exceptionResult(err);
+        return err({error: "No results returned by entity services."});
+    } catch (ex) {
+        return err(exceptionResult(ex));
     }
 }
 
@@ -211,7 +196,7 @@ export async function retrieve(client: Soap.Client, entityName: string, property
  * Do a soap call to the Exact Globe entity services.
  */
 // prettier-ignore
-export async function retrieveSet(client: Soap.Client, entityName: string, queryData: InputSetPropertyData[], batchSize: number = 10): Promise<ExactResult<ResultEntity[] | undefined>> {
+export async function retrieveSet(client: Soap.Client, entityName: string, queryData: InputSetPropertyData[], batchSize: number = 10): Promise<Result<ResultEntity[] | undefined, ExactError>> {
     try {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
         const soapResult = await client.RetrieveSetAsync(populateSetArgs(entityName, queryData, batchSize));
@@ -229,18 +214,12 @@ export async function retrieveSet(client: Soap.Client, entityName: string, query
                 }
             }
 
-            return {
-                success: true,
-                data: result.RetrieveSetResult.Entities.EntityData,
-            };
+            return ok(result.RetrieveSetResult.Entities.EntityData);
         }
 
-        return {
-            success: false,
-            error: "No results returned by entity services.",
-        };
-    } catch (err) {
-        return exceptionResult(err);
+        return err({error: "No results returned by entity services."});
+    } catch (ex) {
+        return err(exceptionResult(ex));
     }
 }
 
@@ -249,17 +228,14 @@ export async function retrieveSet(client: Soap.Client, entityName: string, query
  *
  * An update call to Exact does not return any data, just an http code 200.
  */
-export async function update(client: Soap.Client, entityName: string, propertyData: InputPropertyData[]): Promise<ExactResult<undefined>> {
+export async function update(client: Soap.Client, entityName: string, propertyData: InputPropertyData[]): Promise<Result<undefined, ExactError>> {
     try {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         await client.UpdateAsync(populateSingleArgs(entityName, propertyData));
 
-        return {
-            success: true,
-            data: undefined,
-        };
-    } catch (err) {
-        return exceptionResult(err);
+        return ok(undefined);
+    } catch (ex) {
+        return err(exceptionResult(ex));
     }
 }
 
