@@ -1,11 +1,12 @@
 import * as Soap from "soap";
 import {z} from "zod";
-import {parseNumber} from "./utils";
+import {inspect, parseNumber} from "./utils";
 import {exceptionResult} from "./exception";
 import {err, ok} from "neverthrow";
 
 import type {ExactError} from "./utils";
 import type {Result} from "neverthrow";
+import util from "util";
 
 /**
  * Single entity input data.
@@ -37,7 +38,7 @@ const ResultEntitySchema = z.object({
                         attributes: z.object({
                             "i:type": z.string(),
                         }),
-                        $value: z.union([z.string(), z.number(), z.boolean()]),
+                        $value: z.union([z.string(), z.number(), z.boolean()]).optional(),
                     }),
                 ),
             }),
