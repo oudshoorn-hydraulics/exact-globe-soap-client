@@ -1,12 +1,11 @@
 import * as Soap from "soap";
 import {z} from "zod";
-import {inspect, parseNumber} from "./utils";
+import {parseNumber} from "./utils";
 import {exceptionResult} from "./exception";
 import {err, ok} from "neverthrow";
 
 import type {ExactError} from "./utils";
 import type {Result} from "neverthrow";
-import util from "util";
 
 /**
  * Single entity input data.
