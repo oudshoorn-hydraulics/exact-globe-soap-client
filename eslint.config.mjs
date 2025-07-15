@@ -24,6 +24,6 @@ export default tseslint.config(
         },
     },
     {
-        ignores: ["eslint.config.mjs", "lib/**", "node_modules/**"],
+        ignores: ["eslint.config.mjs", 'vitest.config.ts', "lib/**", "node_modules/**"],
     },
 );
