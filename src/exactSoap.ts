@@ -37,7 +37,7 @@ const ResultEntitySchema = z.object({
                         attributes: z.object({
                             "i:type": z.string(),
                         }),
-                        $value: z.union([z.string(), z.number(), z.boolean()]),
+                        $value: z.union([z.string(), z.number(), z.boolean()]).optional(),
                     }),
                 ),
             }),
