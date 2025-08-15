@@ -31,7 +31,7 @@ const ResultEntitySchema = z.object({
         PropertyData: z.array(
             z.object({
                 Name: z.string(),
-                NoRights: z.boolean(),
+                NoRights: z.union([z.boolean(), z.string()]),
                 Value: z.optional(
                     z.object({
                         attributes: z.object({
