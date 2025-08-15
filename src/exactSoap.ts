@@ -259,6 +259,18 @@ type CallPropertyBodyData = {
 };
 
 /**
+ * Test the Exact soap connection by initiating a connection pool.
+ */
+export async function testConnection(config: Config): Promise<Result<undefined, ExactError>> {
+    const soapClient = await createClient("single", config);
+    if (soapClient.isErr()) {
+        return err(soapClient.error);
+    }
+
+    return ok(undefined);
+}
+
+/**
  * Map the Soap property data to a valid Exact soap object with the value type mapped to the attribute.
  *
  * @throws Error
