@@ -1,11 +1,11 @@
-import * as Soap from "soap";
-import {z} from "zod";
-import {parseNumber} from "./utils";
-import {exceptionResult} from "./exception";
-import {err, ok} from "neverthrow";
+import {err, ok} from 'neverthrow';
+import * as Soap from 'soap';
+import {z} from 'zod';
+import {exceptionResult} from './exception';
+import {parseNumber} from './utils';
 
-import type {ExactError} from "./utils";
-import type {Result} from "neverthrow";
+import type {Result} from 'neverthrow';
+import type {ExactError} from './utils';
 
 /**
  * Single entity input data.
@@ -35,7 +35,7 @@ const ResultEntitySchema = z.object({
                 Value: z.optional(
                     z.object({
                         attributes: z.object({
-                            "i:type": z.string(),
+                            'i:type': z.string(),
                         }),
                         $value: z.union([z.string(), z.number(), z.boolean()]).optional(),
                     }),
@@ -78,42 +78,42 @@ export type Config = {
 };
 
 export enum QueryOperator {
-    ">" = ">",
-    "<" = "<",
-    ">=" = ">=",
-    "<=" = "<=",
-    "<>" = "<>",
-    equals = "EQUALS",
-    notEquals = "NOTEQUAL",
-    contains = "CONTAINS",
-    in = "IN",
-    notIn = "NOTIN",
-    isEmpty = "ISEMPTY",
-    isNotNull = "ISNOTNULL",
-    isNull = "ISNULL",
-    startsWith = "STARTSWITH",
+    '>' = '>',
+    '<' = '<',
+    '>=' = '>=',
+    '<=' = '<=',
+    '<>' = '<>',
+    equals = 'EQUALS',
+    notEquals = 'NOTEQUAL',
+    contains = 'CONTAINS',
+    in = 'IN',
+    notIn = 'NOTIN',
+    isEmpty = 'ISEMPTY',
+    isNotNull = 'ISNOTNULL',
+    isNull = 'ISNULL',
+    startsWith = 'STARTSWITH',
 }
 
 /**
  * Create a soap client instance.
  */
-export async function createClient(mode: "single" | "set" | "update" | "metadata", config: Config): Promise<Result<Soap.Client, ExactError>> {
+export async function createClient(mode: 'single' | 'set' | 'update' | 'metadata', config: Config): Promise<Result<Soap.Client, ExactError>> {
     let wsdlUrl: string;
     switch (mode) {
-        case "set":
-            wsdlUrl = config.soapHost + "/services/Exact.Entities.EG?singleWsdl";
+        case 'set':
+            wsdlUrl = config.soapHost + '/services/Exact.Entities.EG?singleWsdl';
             break;
-        case "metadata":
-            wsdlUrl = config.soapHost + "/services/Exact.Metadata.EG?singleWsdl";
+        case 'metadata':
+            wsdlUrl = config.soapHost + '/services/Exact.Metadata.EG?singleWsdl';
             break;
         default:
-            wsdlUrl = config.soapHost + "/services/Exact.Entity.EG?singleWsdl";
+            wsdlUrl = config.soapHost + '/services/Exact.Entity.EG?singleWsdl';
             break;
     }
 
     const options: Soap.IOptions = {
         endpoint: getEndpoint(wsdlUrl),
-        envelopeKey: "soapenv",
+        envelopeKey: 'soapenv',
     };
 
     const login = {
@@ -178,15 +178,15 @@ export async function retrieve(client: Soap.Client, entityName: string, property
 
             // node-soap does not parse $value. Parse it manually.
             for (const property of propertyData) {
-                if (property.Value && typeof property.Value.$value === "string") {
-                    property.Value.$value = parseExactValue(property.Value.attributes["i:type"], property.Value.$value);
+                if (property.Value && typeof property.Value.$value === 'string') {
+                    property.Value.$value = parseExactValue(property.Value.attributes['i:type'], property.Value.$value);
                 }
             }
 
             return ok(result.RetrieveResult);
         }
 
-        return err({error: "No results returned by entity services."});
+        return err({error: 'No results returned by entity services.'});
     } catch (ex) {
         return err(exceptionResult(ex));
     }
@@ -262,7 +262,7 @@ type CallPropertyBodyData = {
  * Test the Exact soap connection by initiating a connection pool.
  */
 export async function testConnection(config: Config): Promise<Result<undefined, ExactError>> {
-    const soapClient = await createClient("single", config);
+    const soapClient = await createClient('single', config);
     if (soapClient.isErr()) {
         return err(soapClient.error);
     }
@@ -284,7 +284,7 @@ function populateSingleArgs(entityName: string, propertyData: InputPropertyData[
             Name: data.name,
             NoRights: false,
             Value: {
-                attributes: {"i:type": `b:${valueType}`, "xmlns:b": "http://www.w3.org/2001/XMLSchema"},
+                attributes: {'i:type': `b:${valueType}`, 'xmlns:b': 'http://www.w3.org/2001/XMLSchema'},
                 $value: data.value,
             },
         };
@@ -295,7 +295,7 @@ function populateSingleArgs(entityName: string, propertyData: InputPropertyData[
     if (properties.length) {
         return {
             data: {
-                attributes: {"xmlns:i": "http://www.w3.org/2001/XMLSchema-instance"},
+                attributes: {'xmlns:i': 'http://www.w3.org/2001/XMLSchema-instance'},
                 EntityName: entityName,
                 Properties: {
                     PropertyData: properties,
@@ -304,7 +304,7 @@ function populateSingleArgs(entityName: string, propertyData: InputPropertyData[
         };
     }
 
-    throw new Error("No properties supplied for soap call");
+    throw new Error('No properties supplied for soap call');
 }
 
 type CallSetPropertyData = {
@@ -343,7 +343,7 @@ function populateSetArgs(entityName: string, propertyData: InputSetPropertyData[
             Operation: data.operator,
             PropertyName: data.name,
             PropertyValue: {
-                attributes: {"i:type": `b:${valueType}`, "xmlns:b": "http://www.w3.org/2001/XMLSchema"},
+                attributes: {'i:type': `b:${valueType}`, 'xmlns:b': 'http://www.w3.org/2001/XMLSchema'},
                 $value: data.value,
             },
         });
@@ -352,7 +352,7 @@ function populateSetArgs(entityName: string, propertyData: InputSetPropertyData[
     if (queries) {
         return {
             data: {
-                attributes: {"xmlns:i": "http://www.w3.org/2001/XMLSchema-instance"},
+                attributes: {'xmlns:i': 'http://www.w3.org/2001/XMLSchema-instance'},
                 BatchSize: batchSize,
                 EntityName: entityName,
                 FilterQuery: {
@@ -364,7 +364,7 @@ function populateSetArgs(entityName: string, propertyData: InputSetPropertyData[
         };
     }
 
-    throw new Error("No queries supplied for soap call");
+    throw new Error('No queries supplied for soap call');
 }
 
 /**
@@ -373,17 +373,17 @@ function populateSetArgs(entityName: string, propertyData: InputSetPropertyData[
  * @throws Error
  */
 function getVarType(value: unknown): string {
-    if (typeof value === "string" || value === null) {
-        return "string";
+    if (typeof value === 'string' || value === null) {
+        return 'string';
     }
-    if (typeof value === "boolean") {
-        return "boolean";
+    if (typeof value === 'boolean') {
+        return 'boolean';
     }
-    if (typeof value === "number") {
-        return value % 1 === 0 ? "int" : "float";
+    if (typeof value === 'number') {
+        return value % 1 === 0 ? 'int' : 'float';
     }
 
-    throw new Error("Only primary types are allowed");
+    throw new Error('Only primary types are allowed');
 }
 
 /**
@@ -391,7 +391,7 @@ function getVarType(value: unknown): string {
  * The machine name is used within the wsdl file which can not be called by the soap client.
  */
 function getEndpoint(soapPath: string): string {
-    return soapPath.replace("?singleWsdl", "");
+    return soapPath.replace('?singleWsdl', '');
 }
 
 /**
@@ -401,10 +401,10 @@ function getEndpoint(soapPath: string): string {
  * When a number type value string is not parsable to number, the original string value is returned.
  */
 function parseExactValue(exactType: string, value: string): number | boolean | string {
-    const type = exactType.trim().replace("b:", "");
+    const type = exactType.trim().replace('b:', '');
     const sanitizedValue = value.trim();
 
-    if (type === "int" || type === "double") {
+    if (type === 'int' || type === 'double') {
         const parsedNumber = parseNumber(sanitizedValue);
         if (!parsedNumber) {
             return sanitizedValue;
@@ -412,15 +412,15 @@ function parseExactValue(exactType: string, value: string): number | boolean | s
 
         return parsedNumber;
     }
-    if (type === "boolean" && sanitizedValue.toLowerCase() === "true") {
+    if (type === 'boolean' && sanitizedValue.toLowerCase() === 'true') {
         return true;
     }
-    if (type === "boolean" && sanitizedValue.toLowerCase() === "false") {
+    if (type === 'boolean' && sanitizedValue.toLowerCase() === 'false') {
         return false;
     }
 
     // Ignore dateTime.
-    if (type === "dateTime") {
+    if (type === 'dateTime') {
         return sanitizedValue;
     }
 
