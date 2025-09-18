@@ -1,5 +1,5 @@
 {
-    "name": "@mvdve/exact-globe-soap-client",
+    "name": "@oudshoorn-hydraulics/exact-globe-soap-client",
     "version": "1.4.7",
     "description": "A typescript/javascript soap client for Exact Globe",
     "keywords": [
@@ -12,7 +12,7 @@
     "type": "module",
     "repository": {
         "type": "git",
-        "url": "https://github.com/mvdve/exact-globe-soap-client.git"
+        "url": "https://github.com/oudshoorn-hydraulics/exact-globe-soap-client.git"
     },
     "scripts": {
         "build": "rm -rf ./lib && tsc && tsc-alias",

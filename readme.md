@@ -8,18 +8,18 @@ This package is hosted on GitHub, to install it, create a .npmrc with the custom
 
 ```
 registry=https://registry.npmjs.org
-@mvdve:registry=https://npm.pkg.github.com
+@oudshoorn-hydraulics:registry=https://npm.pkg.github.com
 ```
 
 Then run:
 ```
-npm install @mvdve/exact-globe-soap-client
+npm install @oudshoorn-hydraulics/exact-globe-soap-client
 ```
 
 ## Examples:
 
 ```typescript
-import {soap} from "@mvdve/exact-globe-soap-client";
+import {soap} from "@oudshoorn-hydraulics/exact-globe-soap-client";
 import axios from "axios";
 
 const soapConfig: soap.Config = {
