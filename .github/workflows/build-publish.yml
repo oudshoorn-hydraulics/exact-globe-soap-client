@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: '24.4.0'
           registry-url: 'https://npm.pkg.github.com'
-          scope: '@mvdve'
+          scope: '@oudshoorn-hydraulics'
       - run: npm ci
       - run: npm run lint
       - run: npm run build
