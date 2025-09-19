@@ -21,6 +21,7 @@ export default tseslint.config(
             "no-useless-catch": "error",
             "no-throw-literal": "error",
             "ex/no-unhandled": "error",
+            'no-console': ['error', {allow: ['warn', 'error']}],
         },
     },
     {
