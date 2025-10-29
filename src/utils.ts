@@ -18,5 +18,6 @@ export function parseNumber(value: string): number | undefined {
 }
 
 export function inspect(data: unknown): void {
+    // eslint-disable-next-line
     console.log(util.inspect(data, {showHidden: false, depth: null, colors: true}));
 }
