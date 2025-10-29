@@ -12,7 +12,7 @@ export function exceptionResult(err: unknown): ExactError {
             statusCode = err.response.status;
         }
 
-        if (typeof err.response.data === 'string') {
+        if (typeof err.response.data === 'string' && err.response.data.trim()) {
             exactError = extractErrorMessage(err.response.data);
         }
 
@@ -37,11 +37,19 @@ export function exceptionResult(err: unknown): ExactError {
 }
 
 /**
- * Extract the error message from an Exact response xml object.
+ * Extract the error message from an Exact response XML object.
  */
 export function extractErrorMessage(xml: string): string | undefined {
     const parser = new DOMParser();
-    const xmlDocument = parser.parseFromString(xml, 'text/xml');
+
+    let xmlDocument: Document | undefined;
+
+    try {
+        xmlDocument = parser.parseFromString(xml, 'text/xml');
+    } catch (err) {
+        return `Error while parsing Exact XML error response ${err instanceof Error ? err.message : String(err)}`;
+    }
+
     if (!xmlDocument) {
         return `Could not parse XML error document with content: ${xml}`;
     }
