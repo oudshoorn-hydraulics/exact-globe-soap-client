@@ -1,8 +1,7 @@
 // @ts-check
-import eslint from "@eslint/js";
-import tseslint from "typescript-eslint";
-import {plugin as ex} from "eslint-plugin-exception-handling";
-import prettier from "eslint-config-prettier";
+import eslint from '@eslint/js';
+import prettier from 'eslint-config-prettier';
+import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
     prettier,
@@ -15,16 +14,14 @@ export default tseslint.config(
                 tsconfigRootDir: import.meta.dirname,
             },
         },
-        plugins: {ex},
         rules: {
-            "@typescript-eslint/no-floating-promises": "error",
-            "no-useless-catch": "error",
-            "no-throw-literal": "error",
-            "ex/no-unhandled": "error",
+            '@typescript-eslint/no-floating-promises': 'error',
+            'no-useless-catch': 'error',
+            'no-throw-literal': 'error',
             'no-console': ['error', {allow: ['warn', 'error']}],
         },
     },
     {
-        ignores: ["eslint.config.mjs", 'vitest.config.ts', "lib/**", "node_modules/**"],
+        ignores: ['eslint.config.mjs', 'vitest.config.ts', 'lib/**', 'node_modules/**'],
     },
 );

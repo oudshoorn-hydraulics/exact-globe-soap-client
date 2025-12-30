@@ -1,9 +1,17 @@
 import {DOMParser} from '@xmldom/xmldom';
 import axios from 'axios';
+import {Data} from 'effect';
 
-import type {ExactError} from './utils';
+export type ExactErrorData = {
+    message: string;
+    exactMessage?: string;
+    statusCode?: number;
+    exception?: unknown;
+};
 
-export function exceptionResult(err: unknown): ExactError {
+export class ExactError extends Data.TaggedError('ExactError')<ExactErrorData> {}
+
+export function parseExactError(err: unknown): ExactErrorData {
     if (axios.isAxiosError(err) && err.response) {
         let statusCode: number | undefined;
         let exactError: string | undefined;
@@ -17,29 +25,30 @@ export function exceptionResult(err: unknown): ExactError {
         }
 
         return {
-            error: err.message,
+            message: err.message,
+            exactMessage: exactError,
+
             statusCode: statusCode,
-            exactError: exactError,
             exception: err,
         };
     }
 
     if (err instanceof Error) {
         return {
-            error: err.message,
+            message: err.message,
             exception: err,
         };
     }
 
     return {
-        error: String(err),
+        message: String(err),
     };
 }
 
 /**
  * Extract the error message from an Exact response XML object.
  */
-export function extractErrorMessage(xml: string): string | undefined {
+function extractErrorMessage(xml: string): string | undefined {
     const parser = new DOMParser();
 
     let xmlDocument: Document | undefined;

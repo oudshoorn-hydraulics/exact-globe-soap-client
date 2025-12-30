@@ -1,11 +1,10 @@
-import {err, ok} from 'neverthrow';
-import * as Soap from 'soap';
+import {Context, Effect, Layer} from 'effect';
+import {createClientAsync, NTLMSecurity} from 'soap';
 import {z} from 'zod';
-import {exceptionResult} from './exception';
+import {ExactError, parseExactError} from './error';
 import {parseNumber} from './utils';
 
-import type {Result} from 'neverthrow';
-import type {ExactError} from './utils';
+import type {Client, IOptions} from 'soap';
 
 /**
  * Single entity input data.
@@ -24,6 +23,8 @@ export type InputSetPropertyData = InputPropertyData & {
 
 /**
  * Soap result types
+ *
+ * @todo: convert to Effect Schema
  */
 const ResultEntitySchema = z.object({
     EntityName: z.string(),
@@ -95,53 +96,58 @@ export enum QueryOperator {
 }
 
 /**
- * Create a soap client instance.
+ * Create a soap connection by fetching the remote WSDL file.
  */
-export async function createClient(mode: 'single' | 'set' | 'update' | 'metadata', config: Config): Promise<Result<Soap.Client, ExactError>> {
-    let wsdlUrl: string;
-    switch (mode) {
-        case 'set':
-            wsdlUrl = config.soapHost + '/services/Exact.Entities.EG?singleWsdl';
-            break;
-        case 'metadata':
-            wsdlUrl = config.soapHost + '/services/Exact.Metadata.EG?singleWsdl';
-            break;
-        default:
-            wsdlUrl = config.soapHost + '/services/Exact.Entity.EG?singleWsdl';
-            break;
-    }
+function createConnection(mode: 'single' | 'set' | 'update' | 'metadata', config: Config): Effect.Effect<Client, ExactError> {
+    return Effect.gen(function* () {
+        let wsdlUrl: string;
+        switch (mode) {
+            case 'set':
+                wsdlUrl = config.soapHost + '/services/Exact.Entities.EG?singleWsdl';
+                break;
+            case 'metadata':
+                wsdlUrl = config.soapHost + '/services/Exact.Metadata.EG?singleWsdl';
+                break;
+            default:
+                wsdlUrl = config.soapHost + '/services/Exact.Entity.EG?singleWsdl';
+                break;
+        }
 
-    const options: Soap.IOptions = {
-        endpoint: getEndpoint(wsdlUrl),
-        envelopeKey: 'soapenv',
-    };
+        const options: IOptions = {
+            endpoint: getEndpoint(wsdlUrl),
+            envelopeKey: 'soapenv',
+        };
 
-    const login = {
-        username: config.userId,
-        password: config.password,
-        domain: config.domain,
-    };
+        const login = {
+            username: config.userId,
+            password: config.password,
+            domain: config.domain,
+        };
 
-    try {
-        const client = await Soap.createClientAsync(wsdlUrl, options);
-        client.setSecurity(new Soap.NTLMSecurity(login));
+        const client = yield* Effect.tryPromise({
+            try: () => createClientAsync(wsdlUrl, options),
+            catch: (err) => new ExactError(parseExactError(err)),
+        });
+
+        client.setSecurity(new NTLMSecurity(login));
         client.addSoapHeader(`<ServerName xmlns="urn:exact.services.entitymodel.backoffice:v1">${config.dbHost}</ServerName>`);
         client.addSoapHeader(`<DatabaseName xmlns="urn:exact.services.entitymodel.backoffice:v1">${config.dbName}</DatabaseName>`);
 
-        return ok(client);
-    } catch (ex) {
-        return err(exceptionResult(ex));
-    }
+        return client;
+    });
 }
 
 /**
- * Do a soap call to the Exact Globe entity services.
+ * Create a single entity.
  */
-// prettier-ignore
-export async function create(client: Soap.Client, entityName: string, propertyData: InputPropertyData[], returnProperty = "TransactionKey"): Promise<Result<string | undefined, ExactError>> {
-    try {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-        const soapResult = await client.CreateAsync(populateSingleArgs(entityName, propertyData));
+function create(client: Client, entityName: string, propertyData: InputPropertyData[], returnProperty = 'TransactionKey'): Effect.Effect<string | undefined, ExactError> {
+    return Effect.gen(function* () {
+        const args = yield* populateSingleArgs(entityName, propertyData);
+        const soapResult = yield* Effect.tryPromise({
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return
+            try: () => client.CreateAsync(args),
+            catch: (err) => new ExactError(parseExactError(err)),
+        });
 
         if (soapResult && Array.isArray(soapResult) && soapResult.length) {
             const result = CreateResultSchema.parse(soapResult[0]);
@@ -149,28 +155,28 @@ export async function create(client: Soap.Client, entityName: string, propertyDa
 
             if (propertyData.length) {
                 for (const data of propertyData) {
-                    if (data.Name === returnProperty && data.Value && typeof data.Value.$value === "string") {
-                        return ok(data.Value.$value);
+                    if (data.Name === returnProperty && data.Value && typeof data.Value.$value === 'string') {
+                        return data.Value.$value;
                     }
                 }
             }
         }
-    } catch (ex) {
-        return err(exceptionResult(ex));
-    }
 
-    return err({error: `Could not extract return property '${returnProperty}' from Exact response`});
+        return yield* Effect.fail(new ExactError({message: `Could not extract return property '${returnProperty}' from Exact response`}));
+    });
 }
 
 /**
- * Do a soap call to the Exact Globe entity services.
- *
- * @throws Error
+ * Retrieve a single entity.
  */
-export async function retrieve(client: Soap.Client, entityName: string, propertyData: InputPropertyData[]): Promise<Result<ResultEntity | undefined, ExactError>> {
-    try {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-        const soapResult = await client.RetrieveAsync(populateSingleArgs(entityName, propertyData));
+function retrieve(client: Client, entityName: string, propertyData: InputPropertyData[]): Effect.Effect<ResultEntity | undefined, ExactError> {
+    return Effect.gen(function* () {
+        const args = yield* populateSingleArgs(entityName, propertyData);
+        const soapResult = yield* Effect.tryPromise({
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return
+            try: () => client.RetrieveAsync(args),
+            catch: (err) => new ExactError(parseExactError(err)),
+        });
 
         if (soapResult && Array.isArray(soapResult) && soapResult.length) {
             const result = RetrieveResultSchema.parse(soapResult[0]);
@@ -183,23 +189,24 @@ export async function retrieve(client: Soap.Client, entityName: string, property
                 }
             }
 
-            return ok(result.RetrieveResult);
+            return result.RetrieveResult;
         }
 
-        return err({error: 'No results returned by entity services.'});
-    } catch (ex) {
-        return err(exceptionResult(ex));
-    }
+        return yield* Effect.fail(new ExactError({message: 'No results returned by entity services.'}));
+    });
 }
 
 /**
- * Do a soap call to the Exact Globe entity services.
+ * Retrieve an entity set.
  */
-// prettier-ignore
-export async function retrieveSet(client: Soap.Client, entityName: string, queryData: InputSetPropertyData[], batchSize: number = 10): Promise<Result<ResultEntity[] | undefined, ExactError>> {
-    try {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-        const soapResult = await client.RetrieveSetAsync(populateSetArgs(entityName, queryData, batchSize));
+function retrieveSet(client: Client, entityName: string, queryData: InputSetPropertyData[], batchSize: number = 10): Effect.Effect<ResultEntity[] | undefined, ExactError> {
+    return Effect.gen(function* () {
+        const args = yield* populateSetArgs(entityName, queryData, batchSize);
+        const soapResult = yield* Effect.tryPromise({
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return
+            try: () => client.RetrieveSetAsync(args),
+            catch: (err) => new ExactError(parseExactError(err)),
+        });
 
         if (soapResult && Array.isArray(soapResult) && soapResult.length) {
             const result = RetrieveSetResultSchema.parse(soapResult[0]);
@@ -208,19 +215,17 @@ export async function retrieveSet(client: Soap.Client, entityName: string, query
             // node-soap does not parse $value. Parse it manually.
             for (const entity of entityData) {
                 for (const property of entity.Properties.PropertyData) {
-                    if (property.Value && typeof property.Value.$value === "string") {
-                        property.Value.$value = parseExactValue(property.Value.attributes["i:type"], property.Value.$value);
+                    if (property.Value && typeof property.Value.$value === 'string') {
+                        property.Value.$value = parseExactValue(property.Value.attributes['i:type'], property.Value.$value);
                     }
                 }
             }
 
-            return ok(result.RetrieveSetResult.Entities.EntityData);
+            return result.RetrieveSetResult.Entities.EntityData;
         }
 
-        return err({error: "No results returned by entity services."});
-    } catch (ex) {
-        return err(exceptionResult(ex));
-    }
+        return yield* Effect.fail(new ExactError({message: 'No results returned by entity services.'}));
+    });
 }
 
 /**
@@ -228,15 +233,15 @@ export async function retrieveSet(client: Soap.Client, entityName: string, query
  *
  * An update call to Exact does not return any data, just a http code 200.
  */
-export async function update(client: Soap.Client, entityName: string, propertyData: InputPropertyData[]): Promise<Result<undefined, ExactError>> {
-    try {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-        await client.UpdateAsync(populateSingleArgs(entityName, propertyData));
-
-        return ok(undefined);
-    } catch (ex) {
-        return err(exceptionResult(ex));
-    }
+function update(client: Client, entityName: string, propertyData: InputPropertyData[]): Effect.Effect<void, ExactError> {
+    return Effect.gen(function* () {
+        const args = yield* populateSingleArgs(entityName, propertyData);
+        yield* Effect.tryPromise({
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return
+            try: () => client.UpdateAsync(args),
+            catch: (err) => new ExactError(parseExactError(err)),
+        });
+    });
 }
 
 type CallPropertyData = {
@@ -261,50 +266,47 @@ type CallPropertyBodyData = {
 /**
  * Test the Exact soap connection by initiating a connection pool.
  */
-export async function testConnection(config: Config): Promise<Result<undefined, ExactError>> {
-    const soapClient = await createClient('single', config);
-    if (soapClient.isErr()) {
-        return err(soapClient.error);
-    }
-
-    return ok(undefined);
+function testConnection(config: Config): Effect.Effect<void, ExactError> {
+    return Effect.gen(function* () {
+        yield* createConnection('single', config);
+    });
 }
 
 /**
  * Map the Soap property data to a valid Exact soap object with the value type mapped to the attribute.
- *
- * @throws Error
  */
-function populateSingleArgs(entityName: string, propertyData: InputPropertyData[]): CallPropertyBodyData {
-    const properties: CallPropertyData[] = [];
+function populateSingleArgs(entityName: string, propertyData: InputPropertyData[]): Effect.Effect<CallPropertyBodyData, ExactError> {
+    return Effect.gen(function* () {
+        const properties: CallPropertyData[] = [];
 
-    for (const data of propertyData) {
-        const valueType = getVarType(data.value);
-        const property: CallPropertyData = {
-            Name: data.name,
-            NoRights: false,
-            Value: {
-                attributes: {'i:type': `b:${valueType}`, 'xmlns:b': 'http://www.w3.org/2001/XMLSchema'},
-                $value: data.value,
-            },
-        };
-
-        properties.push(property);
-    }
-
-    if (properties.length) {
-        return {
-            data: {
-                attributes: {'xmlns:i': 'http://www.w3.org/2001/XMLSchema-instance'},
-                EntityName: entityName,
-                Properties: {
-                    PropertyData: properties,
+        for (const data of propertyData) {
+            const valueType = yield* getVarType(data.value);
+            const property: CallPropertyData = {
+                Name: data.name,
+                NoRights: false,
+                Value: {
+                    attributes: {'i:type': `b:${valueType}`, 'xmlns:b': 'http://www.w3.org/2001/XMLSchema'},
+                    $value: data.value,
                 },
-            },
-        };
-    }
+            };
 
-    throw new Error('No properties supplied for soap call');
+            properties.push(property);
+        }
+
+        if (properties.length) {
+            return {
+                data: {
+                    attributes: {'xmlns:i': 'http://www.w3.org/2001/XMLSchema-instance'},
+                    EntityName: entityName,
+                    Properties: {
+                        PropertyData: properties,
+                    },
+                },
+            };
+        }
+
+        return yield* Effect.fail(new ExactError({message: 'No properties supplied for soap call'}));
+    });
 }
 
 type CallSetPropertyData = {
@@ -331,64 +333,62 @@ type CallSetPropertyBodyData = {
 
 /**
  * Map the Soap property data to a valid Exact soap object.
- *
- * @throws Error
  */
-function populateSetArgs(entityName: string, propertyData: InputSetPropertyData[], batchSize: number): CallSetPropertyBodyData {
-    const queries: CallSetPropertyData[] = [];
+function populateSetArgs(entityName: string, propertyData: InputSetPropertyData[], batchSize: number): Effect.Effect<CallSetPropertyBodyData, ExactError> {
+    return Effect.gen(function* () {
+        const queries: CallSetPropertyData[] = [];
 
-    for (const data of propertyData) {
-        const valueType = getVarType(data.value);
-        queries.push({
-            Operation: data.operator,
-            PropertyName: data.name,
-            PropertyValue: {
-                attributes: {'i:type': `b:${valueType}`, 'xmlns:b': 'http://www.w3.org/2001/XMLSchema'},
-                $value: data.value,
-            },
-        });
-    }
+        for (const data of propertyData) {
+            const valueType = yield* getVarType(data.value);
+            queries.push({
+                Operation: data.operator,
+                PropertyName: data.name,
+                PropertyValue: {
+                    attributes: {'i:type': `b:${valueType}`, 'xmlns:b': 'http://www.w3.org/2001/XMLSchema'},
+                    $value: data.value,
+                },
+            });
+        }
 
-    if (queries) {
-        return {
-            data: {
-                attributes: {'xmlns:i': 'http://www.w3.org/2001/XMLSchema-instance'},
-                BatchSize: batchSize,
-                EntityName: entityName,
-                FilterQuery: {
-                    Properties: {
-                        QueryProperty: queries,
+        if (queries) {
+            return {
+                data: {
+                    attributes: {'xmlns:i': 'http://www.w3.org/2001/XMLSchema-instance'},
+                    BatchSize: batchSize,
+                    EntityName: entityName,
+                    FilterQuery: {
+                        Properties: {
+                            QueryProperty: queries,
+                        },
                     },
                 },
-            },
-        };
-    }
+            };
+        }
 
-    throw new Error('No queries supplied for soap call');
+        return yield* Effect.fail(new ExactError({message: 'No queries supplied for soap call'}));
+    });
 }
 
 /**
  * Get the type of value, this is used for the value metadata.
- *
- * @throws Error
  */
-function getVarType(value: unknown): string {
+function getVarType(value: unknown): Effect.Effect<string, ExactError> {
     if (typeof value === 'string' || value === null) {
-        return 'string';
+        return Effect.succeed('string');
     }
     if (typeof value === 'boolean') {
-        return 'boolean';
+        return Effect.succeed('boolean');
     }
     if (typeof value === 'number') {
-        return value % 1 === 0 ? 'int' : 'float';
+        return Effect.succeed(value % 1 === 0 ? 'int' : 'float');
     }
 
-    throw new Error('Only primary types are allowed');
+    return Effect.fail(new ExactError({message: 'Only primary types are allowed'}));
 }
 
 /**
  * Get the base url from the wsdl url. This is used to override the host url from the wsdl file.
- * The machine name is used within the wsdl file which can not be called by the soap client.
+ * The machine name is used within the wsdl file, which cannot be called by the soap client.
  */
 function getEndpoint(soapPath: string): string {
     return soapPath.replace('?singleWsdl', '');
@@ -425,4 +425,25 @@ function parseExactValue(exactType: string, value: string): number | boolean | s
     }
 
     return sanitizedValue;
+}
+
+export class ExactClient extends Context.Tag('ExactClientService')<
+    ExactClient,
+    {
+        createConnection: typeof createConnection;
+        create: typeof create;
+        retrieve: typeof retrieve;
+        retrieveSet: typeof retrieveSet;
+        update: typeof update;
+        testConnection: typeof testConnection;
+    }
+>() {
+    static readonly Live = Layer.succeed(this, {
+        createConnection: createConnection,
+        create: create,
+        retrieve: retrieve,
+        retrieveSet: retrieveSet,
+        update: update,
+        testConnection: testConnection,
+    });
 }
