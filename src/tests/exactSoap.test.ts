@@ -1,49 +1,52 @@
 import 'dotenv/config';
-import {describe, expect, test} from 'vitest';
-import {create, createClient, retrieve} from '../exactSoap';
+
+import {Effect, pipe} from 'effect';
+import {describe, expect, it} from 'vitest';
+import {ExactClient} from '../exactSoap';
 
 import type {Config, InputPropertyData} from '../exactSoap';
 
-describe('Exact soap client', async () => {
+describe('Exact soap client', () => {
     const soapConfig: Config = {
         soapHost: process.env.SOAP_HOST ?? '',
-        dbHost: process.env.DB_HOST ?? '',
-        dbName: process.env.DB_NAME ?? '',
-        domain: process.env.DOMAIN ?? '',
-        password: process.env.PASSWORD ?? '',
-        userId: process.env.UID ?? '',
+        dbHost: process.env.SOAP_DB_HOST ?? '',
+        dbName: process.env.SOAP_DB_NAME ?? '',
+        domain: process.env.SOAP_DOMAIN ?? '',
+        password: process.env.SOAP_PASSWORD ?? '',
+        userId: process.env.SOAP_USER ?? '',
     };
 
-    const client = await createClient('single', soapConfig);
-    test('Init client', () => {
-        expect(client.isOk()).toBe(true);
-    });
+    it('Should create a single entity', () =>
+        pipe(
+            Effect.gen(function* () {
+                const client = yield* ExactClient;
+                const connection = yield* client.createConnection('single', soapConfig);
 
-    if (client.isErr()) {
-        throw new Error(client.error.exactError);
-    }
+                const linePropertyData: InputPropertyData[] = [];
+                linePropertyData.push({name: 'ItemCode', value: 'product-sku'});
+                linePropertyData.push({name: 'Quantity', value: 10});
 
-    test('Create single entity', async () => {
-        const linePropertyData: InputPropertyData[] = [];
-        linePropertyData.push({name: 'ItemCode', value: 'product-sku'});
-        linePropertyData.push({name: 'Quantity', value: 10});
+                const result = yield* client.create(connection, 'SalesOrderLine', linePropertyData);
 
-        const result = await create(client.value, 'SalesOrderLine', linePropertyData);
-        if (result.isErr()) {
-            throw new Error(result.error.exactError);
-        }
+                expect(result).toBeTypeOf('string');
+            }),
+            Effect.provide(ExactClient.Live),
+            Effect.runPromise,
+        ));
 
-        expect(result.value).toBeTypeOf('string');
-    });
+    it('Should retrieve a single entity', () =>
+        pipe(
+            Effect.gen(function* () {
+                const client = yield* ExactClient;
+                const connection = yield* client.createConnection('single', soapConfig);
 
-    test('Retrieve single entity', async () => {
-        const linePropertyData: InputPropertyData[] = [{name: 'ItemCode', value: 'P1.10010'}];
+                const linePropertyData: InputPropertyData[] = [{name: 'ItemCode', value: 'P1.10010'}];
 
-        const result = await retrieve(client.value, 'Item', linePropertyData);
-        if (result.isErr()) {
-            throw new Error(result.error.exactError);
-        }
+                const result = yield* client.retrieve(connection, 'Item', linePropertyData);
 
-        expect(result.value).toBeTypeOf('object');
-    });
+                expect(result).toBeTypeOf('object');
+            }),
+            Effect.provide(ExactClient.Live),
+            Effect.runPromise,
+        ));
 });

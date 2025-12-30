@@ -23,6 +23,8 @@ export type InputSetPropertyData = InputPropertyData & {
 
 /**
  * Soap result types
+ *
+ * @todo: convert to Effect Schema
  */
 const ResultEntitySchema = z.object({
     EntityName: z.string(),
@@ -94,9 +96,9 @@ export enum QueryOperator {
 }
 
 /**
- * Create a soap client instance.
+ * Create a soap connection by fetching the remote WSDL file.
  */
-function createClient(mode: 'single' | 'set' | 'update' | 'metadata', config: Config): Effect.Effect<Client, ExactError> {
+function createConnection(mode: 'single' | 'set' | 'update' | 'metadata', config: Config): Effect.Effect<Client, ExactError> {
     return Effect.gen(function* () {
         let wsdlUrl: string;
         switch (mode) {
@@ -136,7 +138,7 @@ function createClient(mode: 'single' | 'set' | 'update' | 'metadata', config: Co
 }
 
 /**
- * Do a soap call to the Exact Globe entity services.
+ * Create a single entity.
  */
 function create(client: Client, entityName: string, propertyData: InputPropertyData[], returnProperty = 'TransactionKey'): Effect.Effect<string | undefined, ExactError> {
     return Effect.gen(function* () {
@@ -165,7 +167,7 @@ function create(client: Client, entityName: string, propertyData: InputPropertyD
 }
 
 /**
- * Do a soap call to the Exact Globe entity services.
+ * Retrieve a single entity.
  */
 function retrieve(client: Client, entityName: string, propertyData: InputPropertyData[]): Effect.Effect<ResultEntity | undefined, ExactError> {
     return Effect.gen(function* () {
@@ -195,7 +197,7 @@ function retrieve(client: Client, entityName: string, propertyData: InputPropert
 }
 
 /**
- * Do a soap call to the Exact Globe entity services.
+ * Retrieve an entity set.
  */
 function retrieveSet(client: Client, entityName: string, queryData: InputSetPropertyData[], batchSize: number = 10): Effect.Effect<ResultEntity[] | undefined, ExactError> {
     return Effect.gen(function* () {
@@ -266,7 +268,7 @@ type CallPropertyBodyData = {
  */
 function testConnection(config: Config): Effect.Effect<void, ExactError> {
     return Effect.gen(function* () {
-        yield* createClient('single', config);
+        yield* createConnection('single', config);
     });
 }
 
@@ -428,7 +430,7 @@ function parseExactValue(exactType: string, value: string): number | boolean | s
 export class ExactClient extends Context.Tag('ExactClientService')<
     ExactClient,
     {
-        createClient: typeof createClient;
+        createConnection: typeof createConnection;
         create: typeof create;
         retrieve: typeof retrieve;
         retrieveSet: typeof retrieveSet;
@@ -437,7 +439,7 @@ export class ExactClient extends Context.Tag('ExactClientService')<
     }
 >() {
     static readonly Live = Layer.succeed(this, {
-        createClient: createClient,
+        createConnection: createConnection,
         create: create,
         retrieve: retrieve,
         retrieveSet: retrieveSet,
