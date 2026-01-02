@@ -1,4 +1,5 @@
 import {Context, Effect, Layer} from 'effect';
+import path from 'path';
 import {createClientAsync, NTLMSecurity} from 'soap';
 import {z} from 'zod';
 import {ExactError, parseExactError} from './error';
@@ -100,21 +101,26 @@ export enum QueryOperator {
  */
 function createConnection(mode: 'single' | 'set' | 'update' | 'metadata', config: Config): Effect.Effect<Client, ExactError> {
     return Effect.gen(function* () {
-        let wsdlUrl: string;
+        let wsdlPath: string;
+        let endpoint: string;
+
         switch (mode) {
             case 'set':
-                wsdlUrl = config.soapHost + '/services/Exact.Entities.EG?singleWsdl';
+                wsdlPath = path.join(import.meta.dirname, '../wsdl/Exact.Entities.EG.xml');
+                endpoint = config.soapHost + '/services/Exact.Entities.EG';
                 break;
             case 'metadata':
-                wsdlUrl = config.soapHost + '/services/Exact.Metadata.EG?singleWsdl';
+                wsdlPath = path.join(import.meta.dirname, '../wsdl/Exact.Metadata.EG.xml');
+                endpoint = config.soapHost + '/services/Exact.Metadata.EG';
                 break;
             default:
-                wsdlUrl = config.soapHost + '/services/Exact.Entity.EG?singleWsdl';
+                wsdlPath = path.join(import.meta.dirname, '../wsdl/Exact.Entity.EG.xml');
+                endpoint = config.soapHost + '/services/Exact.Entity.EG';
                 break;
         }
 
         const options: IOptions = {
-            endpoint: getEndpoint(wsdlUrl),
+            endpoint: endpoint,
             envelopeKey: 'soapenv',
         };
 
@@ -125,7 +131,7 @@ function createConnection(mode: 'single' | 'set' | 'update' | 'metadata', config
         };
 
         const client = yield* Effect.tryPromise({
-            try: () => createClientAsync(wsdlUrl, options),
+            try: () => createClientAsync(wsdlPath, options),
             catch: (err) => new ExactError(parseExactError(err)),
         });
 
@@ -384,14 +390,6 @@ function getVarType(value: unknown): Effect.Effect<string, ExactError> {
     }
 
     return Effect.fail(new ExactError({message: 'Only primary types are allowed'}));
-}
-
-/**
- * Get the base url from the wsdl url. This is used to override the host url from the wsdl file.
- * The machine name is used within the wsdl file, which cannot be called by the soap client.
- */
-function getEndpoint(soapPath: string): string {
-    return soapPath.replace('?singleWsdl', '');
 }
 
 /**
