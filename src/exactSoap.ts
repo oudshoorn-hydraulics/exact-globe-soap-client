@@ -239,7 +239,7 @@ function retrieveSet(client: Client, entityName: string, queryData: InputSetProp
  *
  * An update call to Exact does not return any data, just a http code 200.
  */
-function update(client: Client, entityName: string, propertyData: InputPropertyData[]): Effect.Effect<void, ExactError> {
+function update(client: Client, entityName: string, propertyData: InputPropertyData[]): Effect.Effect<boolean, ExactError> {
     return Effect.gen(function* () {
         const args = yield* populateSingleArgs(entityName, propertyData);
         yield* Effect.tryPromise({
@@ -247,6 +247,8 @@ function update(client: Client, entityName: string, propertyData: InputPropertyD
             try: () => client.UpdateAsync(args),
             catch: (err) => new ExactError(parseExactError(err)),
         });
+
+        return true;
     });
 }
 
@@ -272,9 +274,11 @@ type CallPropertyBodyData = {
 /**
  * Test the Exact soap connection by initiating a connection pool.
  */
-function testConnection(config: Config): Effect.Effect<void, ExactError> {
+function testConnection(config: Config): Effect.Effect<boolean, ExactError> {
     return Effect.gen(function* () {
         yield* createConnection('single', config);
+
+        return true;
     });
 }
 
