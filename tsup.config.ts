@@ -9,4 +9,5 @@ export default defineConfig({
     minify: false,
     bundle: true,
     clean: true,
+    shims: true,
 });
