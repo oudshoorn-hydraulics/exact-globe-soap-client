@@ -8,14 +8,22 @@
         "soap"
     ],
     "author": "Mathijs van de Venne",
-    "main": "lib/index.js",
+    "main": "dist/index.cjs",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "require": "./dist/index.cjs",
+            "import": "./dist/index.js"
+        }
+    },
     "type": "module",
     "repository": {
         "type": "git",
         "url": "https://github.com/oudshoorn-hydraulics/exact-globe-soap-client.git"
     },
     "scripts": {
-        "build": "rm -rf ./lib && tsc && tsc-alias",
+        "compile": "tsup",
+        "build": "rm -rf ./dist && npm run compile",
         "lint": "npx eslint .",
         "test": "vitest run"
     },
@@ -34,7 +42,7 @@
         "eslint-config-prettier": "^10.1.2",
         "prettier": "^3.4.2",
         "prettier-plugin-organize-imports": "^4.3.0",
-        "tsc-alias": "^1.8.10",
+        "tsup": "^8.5.1",
         "typescript": "^5.3.3",
         "typescript-eslint": "^8.31.1",
         "vitest": "^3.1.2"

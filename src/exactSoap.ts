@@ -110,15 +110,15 @@ function createConnection(mode: 'single' | 'set' | 'update' | 'metadata', config
 
         switch (mode) {
             case 'set':
-                wsdlPath = path.join(__dirname, '../wsdl/Exact.Entities.EG.xml');
+                wsdlPath = path.join(__dirname, '/wsdl/Exact.Entities.EG.xml');
                 endpoint = config.soapHost + '/services/Exact.Entities.EG';
                 break;
             case 'metadata':
-                wsdlPath = path.join(__dirname, '../wsdl/Exact.Metadata.EG.xml');
+                wsdlPath = path.join(__dirname, '/wsdl/Exact.Metadata.EG.xml');
                 endpoint = config.soapHost + '/services/Exact.Metadata.EG';
                 break;
             default:
-                wsdlPath = path.join(__dirname, '../wsdl/Exact.Entity.EG.xml');
+                wsdlPath = path.join(__dirname, '/wsdl/Exact.Entity.EG.xml');
                 endpoint = config.soapHost + '/services/Exact.Entity.EG';
                 break;
         }
