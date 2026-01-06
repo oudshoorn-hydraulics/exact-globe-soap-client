@@ -11,6 +11,7 @@
         "declaration": true,
         "skipLibCheck": true,
         "verbatimModuleSyntax": true,
+        "allowImportingTsExtensions": true,
         "baseUrl": "./src",
         "outDir": "./lib"
     },
