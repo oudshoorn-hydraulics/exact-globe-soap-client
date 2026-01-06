@@ -1,6 +1,6 @@
 {
     "name": "@oudshoorn-hydraulics/exact-globe-soap-client",
-    "version": "2.0.7",
+    "version": "2.0.8",
     "description": "A typescript/javascript soap client for Exact Globe",
     "keywords": [
         "Exact globe",
