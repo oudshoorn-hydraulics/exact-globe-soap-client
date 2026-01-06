@@ -1,9 +1,10 @@
 import {Context, Effect, Layer} from 'effect';
 import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {createClientAsync, NTLMSecurity} from 'soap';
 import {z} from 'zod';
 import {ExactError, parseExactError} from './error';
-import {getDirname, parseNumber} from './utils';
+import {parseNumber} from './utils';
 
 import type {Client, IOptions} from 'soap';
 
@@ -103,7 +104,7 @@ function createConnection(mode: 'single' | 'set' | 'update' | 'metadata', config
     return Effect.gen(function* () {
         let wsdlPath: string;
         let endpoint: string;
-        const dirname = getDirname();
+        const dirname = path.dirname(fileURLToPath(import.meta.url));
 
         switch (mode) {
             case 'set':
