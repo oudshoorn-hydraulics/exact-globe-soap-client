@@ -1,6 +1,6 @@
 {
     "name": "@oudshoorn-hydraulics/exact-globe-soap-client",
-    "version": "2.0.6",
+    "version": "2.0.7",
     "description": "A typescript/javascript soap client for Exact Globe",
     "keywords": [
         "Exact globe",
@@ -25,7 +25,8 @@
         "compile": "tsup",
         "build": "rm -rf ./dist && npm run compile",
         "lint": "npx eslint .",
-        "test": "vitest run"
+        "test:integration": "vitest --project=integration run",
+        "test:unit": "vitest --project=unit run"
     },
     "dependencies": {
         "@xmldom/xmldom": "^0.8.6",
