@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+export const WsdlEntity = `<?xml version="1.0" encoding="utf-8"?>
 <wsdl:definitions name="EntityWinService" targetNamespace="http://www.exactsoftware.com/services/entities/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:wsam="http://www.w3.org/2007/05/addressing/metadata" xmlns:wsx="http://schemas.xmlsoap.org/ws/2004/09/mex" xmlns:wsap="http://schemas.xmlsoap.org/ws/2004/08/addressing/policy" xmlns:msc="http://schemas.microsoft.com/ws/2005/12/wsdl/contract" xmlns:wsp="http://schemas.xmlsoap.org/ws/2004/09/policy" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:tns="http://www.exactsoftware.com/services/entities/" xmlns:wsa10="http://www.w3.org/2005/08/addressing" xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl" xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/08/addressing">
     <wsp:Policy wsu:Id="BasicHttpBinding_entity_policy">
         <wsp:ExactlyOne>
@@ -134,7 +134,7 @@
             <xs:element name="duration" nillable="true" type="tns:duration"/>
             <xs:simpleType name="duration">
                 <xs:restriction base="xs:duration">
-                    <xs:pattern value="\-?P(\d*D)?(T(\d*H)?(\d*M)?(\d*(\.\d*)?S)?)?"/>
+                    <xs:pattern value="\\-?P(\\d*D)?(T(\\d*H)?(\\d*M)?(\\d*(\\.\\d*)?S)?)?"/>
                     <xs:minInclusive value="-P10675199DT2H48M5.4775808S"/>
                     <xs:maxInclusive value="P10675199DT2H48M5.4775807S"/>
                 </xs:restriction>
@@ -142,7 +142,7 @@
             <xs:element name="guid" nillable="true" type="tns:guid"/>
             <xs:simpleType name="guid">
                 <xs:restriction base="xs:string">
-                    <xs:pattern value="[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}"/>
+                    <xs:pattern value="[\\da-fA-F]{8}-[\\da-fA-F]{4}-[\\da-fA-F]{4}-[\\da-fA-F]{4}-[\\da-fA-F]{12}"/>
                 </xs:restriction>
             </xs:simpleType>
             <xs:attribute name="FactoryType" type="xs:QName"/>
@@ -403,4 +403,4 @@
             <soap:address location="http://virtueel2.oudshoornbv.local:8010/services/Exact.Entity.EG"/>
         </wsdl:port>
     </wsdl:service>
-</wsdl:definitions>
+</wsdl:definitions>`;

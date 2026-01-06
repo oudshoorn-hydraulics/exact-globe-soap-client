@@ -1,10 +1,11 @@
 import {Context, Effect, Layer} from 'effect';
-import path from 'node:path';
-import {fileURLToPath} from 'node:url';
 import {createClientAsync, NTLMSecurity} from 'soap';
 import {z} from 'zod';
 import {ExactError, parseExactError} from './error';
 import {parseNumber} from './utils';
+import {WsdlEntities} from './wsdl/entities.ts';
+import {WsdlEntity} from './wsdl/entity.ts';
+import {WsdlMetadata} from './wsdl/metadata.ts';
 
 import type {Client, IOptions} from 'soap';
 
@@ -102,21 +103,20 @@ export enum QueryOperator {
  */
 function createConnection(mode: 'single' | 'set' | 'update' | 'metadata', config: Config): Effect.Effect<Client, ExactError> {
     return Effect.gen(function* () {
-        let wsdlPath: string;
+        let wsdlFile: string;
         let endpoint: string;
-        const dirname = path.dirname(fileURLToPath(import.meta.url));
 
         switch (mode) {
             case 'set':
-                wsdlPath = path.join(dirname, '../src/wsdl/Exact.Entities.EG.xml');
+                wsdlFile = WsdlEntities;
                 endpoint = config.soapHost + '/services/Exact.Entities.EG';
                 break;
             case 'metadata':
-                wsdlPath = path.join(dirname, '../src/wsdl/Exact.Metadata.EG.xml');
+                wsdlFile = WsdlMetadata;
                 endpoint = config.soapHost + '/services/Exact.Metadata.EG';
                 break;
             default:
-                wsdlPath = path.join(dirname, '../src/wsdl/Exact.Entity.EG.xml');
+                wsdlFile = WsdlEntity;
                 endpoint = config.soapHost + '/services/Exact.Entity.EG';
                 break;
         }
@@ -133,7 +133,7 @@ function createConnection(mode: 'single' | 'set' | 'update' | 'metadata', config
         };
 
         const client = yield* Effect.tryPromise({
-            try: () => createClientAsync(wsdlPath, options),
+            try: () => createClientAsync(wsdlFile, options),
             catch: (err) => new ExactError(parseExactError(err)),
         });
 
