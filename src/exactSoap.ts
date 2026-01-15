@@ -1,12 +1,12 @@
-import {Context, Effect, Layer} from 'effect';
+import {Context, Effect, Layer, Schema as s} from 'effect';
 import {createClientAsync, NTLMSecurity} from 'soap';
-import {z} from 'zod';
 import {ExactError, parseExactError} from './error';
 import {parseNumber} from './utils';
 import {WsdlEntities} from './wsdl/entities.ts';
 import {WsdlEntity} from './wsdl/entity.ts';
 import {WsdlMetadata} from './wsdl/metadata.ts';
 
+import type {ParseError} from 'effect/ParseResult';
 import type {Client, IOptions} from 'soap';
 
 /**
@@ -24,53 +24,73 @@ export type InputSetPropertyData = InputPropertyData & {
     operator: QueryOperator;
 };
 
+const DecodeEntityPropertySchema = s.Struct({
+    Name: s.String,
+    NoRights: s.Union(s.Boolean, s.String),
+    Value: s.optional(
+        s.Struct({
+            attributes: s.Struct({
+                'i:type': s.String,
+            }),
+            $value: s.optional(s.String),
+        }),
+    ),
+});
+
+type DecodeEntityProperty = s.Schema.Type<typeof DecodeEntityPropertySchema>;
+
+const EncodeEntityPropertySchema = s.Struct({
+    Name: s.String,
+    NoRights: s.Union(s.Boolean, s.String),
+    Value: s.optional(
+        s.Struct({
+            attributes: s.Struct({
+                'i:type': s.String,
+            }),
+            $value: s.optional(s.Union(s.String, s.Number, s.Boolean)),
+        }),
+    ),
+});
+
+type EncodeEntityProperty = s.Schema.Type<typeof EncodeEntityPropertySchema>;
+
 /**
- * Soap result types
- *
- * @todo: convert to Effect Schema
+ * Soap result types.
  */
-const ResultEntitySchema = z.object({
-    EntityName: z.string(),
-    Properties: z.object({
-        PropertyData: z.array(
-            z.object({
-                Name: z.string(),
-                NoRights: z.union([z.boolean(), z.string()]),
-                Value: z.optional(
-                    z.object({
-                        attributes: z.object({
-                            'i:type': z.string(),
-                        }),
-                        $value: z.union([z.string(), z.number(), z.boolean()]).optional(),
-                    }),
-                ),
+const ResultEntitySchema = s.Struct({
+    EntityName: s.String,
+    Properties: s.Struct({
+        PropertyData: s.Array(
+            s.transform(DecodeEntityPropertySchema, EncodeEntityPropertySchema, {
+                decode: (property) => decodeExactProperty(property),
+                encode: (property) => encodeExactProperty(property),
             }),
         ),
     }),
 });
-export type ResultEntity = z.infer<typeof ResultEntitySchema>;
+export type ResultEntity = s.Schema.Type<typeof ResultEntitySchema>;
 
-const CreateResultSchema = z.object({
+const CreateResultSchema = s.Struct({
     CreateResult: ResultEntitySchema,
 });
-export type CreateResult = z.infer<typeof CreateResultSchema>;
+export type CreateResult = s.Schema.Type<typeof CreateResultSchema>;
 
-const RetrieveResultSchema = z.object({
+const RetrieveResultSchema = s.Struct({
     RetrieveResult: ResultEntitySchema,
 });
-export type RetrieveResult = z.infer<typeof RetrieveResultSchema>;
+export type RetrieveResult = s.Schema.Type<typeof RetrieveResultSchema>;
 
-const RetrieveSetResultSchema = z.object({
-    RetrieveSetResult: z.object({
-        Entities: z.object({
-            EntityData: ResultEntitySchema.array(),
+const RetrieveSetResultSchema = s.Struct({
+    RetrieveSetResult: s.Struct({
+        Entities: s.Struct({
+            EntityData: s.Array(ResultEntitySchema),
         }),
-        EntityName: z.string(),
-        SessionID: z.number(),
+        EntityName: s.String,
+        SessionID: s.Number,
     }),
 });
 
-export type RetrieveSetResult = z.infer<typeof RetrieveSetResultSchema>;
+export type RetrieveSetResult = s.Schema.Type<typeof RetrieveSetResultSchema>;
 
 export type Config = {
     soapHost: string;
@@ -148,7 +168,12 @@ function createConnection(mode: 'single' | 'set' | 'update' | 'metadata', config
 /**
  * Create a single entity.
  */
-function create(client: Client, entityName: string, propertyData: InputPropertyData[], returnProperty = 'TransactionKey'): Effect.Effect<string | undefined, ExactError> {
+function create(
+    client: Client,
+    entityName: string,
+    propertyData: InputPropertyData[],
+    returnProperty = 'TransactionKey',
+): Effect.Effect<string | undefined, ExactError | ParseError> {
     return Effect.gen(function* () {
         const args = yield* populateSingleArgs(entityName, propertyData);
         const soapResult = yield* Effect.tryPromise({
@@ -158,7 +183,7 @@ function create(client: Client, entityName: string, propertyData: InputPropertyD
         });
 
         if (soapResult && Array.isArray(soapResult) && soapResult.length) {
-            const result = CreateResultSchema.parse(soapResult[0]);
+            const result = yield* s.decodeUnknown(CreateResultSchema)(soapResult[0]);
             const propertyData = result.CreateResult.Properties.PropertyData;
 
             if (propertyData.length) {
@@ -177,7 +202,7 @@ function create(client: Client, entityName: string, propertyData: InputPropertyD
 /**
  * Retrieve a single entity.
  */
-function retrieve(client: Client, entityName: string, propertyData: InputPropertyData[]): Effect.Effect<ResultEntity | undefined, ExactError> {
+function retrieve(client: Client, entityName: string, propertyData: InputPropertyData[]): Effect.Effect<ResultEntity | undefined, ExactError | ParseError> {
     return Effect.gen(function* () {
         const args = yield* populateSingleArgs(entityName, propertyData);
         const soapResult = yield* Effect.tryPromise({
@@ -187,15 +212,7 @@ function retrieve(client: Client, entityName: string, propertyData: InputPropert
         });
 
         if (soapResult && Array.isArray(soapResult) && soapResult.length) {
-            const result = RetrieveResultSchema.parse(soapResult[0]);
-            const propertyData = result.RetrieveResult.Properties.PropertyData;
-
-            // node-soap does not parse $value. Parse it manually.
-            for (const property of propertyData) {
-                if (property.Value && typeof property.Value.$value === 'string') {
-                    property.Value.$value = parseExactValue(property.Value.attributes['i:type'], property.Value.$value);
-                }
-            }
+            const result = yield* s.decodeUnknown(RetrieveResultSchema)(soapResult[0]);
 
             return result.RetrieveResult;
         }
@@ -207,7 +224,12 @@ function retrieve(client: Client, entityName: string, propertyData: InputPropert
 /**
  * Retrieve an entity set.
  */
-function retrieveSet(client: Client, entityName: string, queryData: InputSetPropertyData[], batchSize: number = 10): Effect.Effect<ResultEntity[] | undefined, ExactError> {
+function retrieveSet(
+    client: Client,
+    entityName: string,
+    queryData: InputSetPropertyData[],
+    batchSize: number = 10,
+): Effect.Effect<readonly ResultEntity[] | undefined, ExactError | ParseError> {
     return Effect.gen(function* () {
         const args = yield* populateSetArgs(entityName, queryData, batchSize);
         const soapResult = yield* Effect.tryPromise({
@@ -217,17 +239,7 @@ function retrieveSet(client: Client, entityName: string, queryData: InputSetProp
         });
 
         if (soapResult && Array.isArray(soapResult) && soapResult.length) {
-            const result = RetrieveSetResultSchema.parse(soapResult[0]);
-            const entityData = result.RetrieveSetResult.Entities.EntityData;
-
-            // node-soap does not parse $value. Parse it manually.
-            for (const entity of entityData) {
-                for (const property of entity.Properties.PropertyData) {
-                    if (property.Value && typeof property.Value.$value === 'string') {
-                        property.Value.$value = parseExactValue(property.Value.attributes['i:type'], property.Value.$value);
-                    }
-                }
-            }
+            const result = yield* s.decodeUnknown(RetrieveSetResultSchema)(soapResult[0]);
 
             return result.RetrieveSetResult.Entities.EntityData;
         }
@@ -404,31 +416,69 @@ function getVarType(value: unknown): Effect.Effect<string, ExactError> {
  *
  * When a number type value string is not parsable to number, the original string value is returned.
  */
-function parseExactValue(exactType: string, value: string): number | boolean | string {
+function decodeExactProperty(property: DecodeEntityProperty): EncodeEntityProperty {
+    if (!property.Value?.$value) {
+        return property;
+    }
+
+    const exactType = property.Value.attributes['i:type'];
     const type = exactType.trim().replace('b:', '');
+    const value = property.Value.$value;
     const sanitizedValue = value.trim();
 
     if (type === 'int' || type === 'double') {
         const parsedNumber = parseNumber(sanitizedValue);
         if (!parsedNumber) {
-            return sanitizedValue;
+            return property;
         }
 
-        return parsedNumber;
+        return {
+            ...property,
+            Value: {
+                ...property.Value,
+                $value: parsedNumber,
+            },
+        };
     }
     if (type === 'boolean' && sanitizedValue.toLowerCase() === 'true') {
-        return true;
+        return {
+            ...property,
+            Value: {
+                ...property.Value,
+                $value: true,
+            },
+        };
     }
     if (type === 'boolean' && sanitizedValue.toLowerCase() === 'false') {
-        return false;
+        return {
+            ...property,
+            Value: {
+                ...property.Value,
+                $value: false,
+            },
+        };
     }
 
     // Ignore dateTime.
     if (type === 'dateTime') {
-        return sanitizedValue;
+        return property;
     }
 
-    return sanitizedValue;
+    return property;
+}
+
+function encodeExactProperty(property: EncodeEntityProperty): DecodeEntityProperty {
+    if (!property.Value?.$value) {
+        return property as DecodeEntityProperty;
+    }
+
+    return {
+        ...property,
+        Value: {
+            ...property.Value,
+            $value: property.Value.$value.toString(),
+        },
+    };
 }
 
 export class ExactClient extends Context.Tag('ExactClientService')<
