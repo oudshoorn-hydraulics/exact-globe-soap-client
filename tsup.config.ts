@@ -8,6 +8,7 @@ export default defineConfig({
     dts: true,
     minify: false,
     bundle: true,
+    skipNodeModulesBundle: true,
     clean: true,
     shims: true,
 });
