@@ -1,6 +1,6 @@
 {
     "name": "@oudshoorn-hydraulics/exact-globe-soap-client",
-    "version": "2.0.13",
+    "version": "2.0.14",
     "description": "A typescript/javascript soap client for Exact Globe",
     "keywords": [
         "Exact globe",
@@ -30,8 +30,7 @@
     "dependencies": {
         "@xmldom/xmldom": "^0.8.6",
         "effect": "^3.19.13",
-        "soap": "^1.0.0",
-        "axios": "1.13.1"
+        "soap": "^1.0.0"
     },
     "devDependencies": {
         "@eslint/js": "^9.26.0",
