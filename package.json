@@ -1,6 +1,6 @@
 {
     "name": "@oudshoorn-hydraulics/exact-globe-soap-client",
-    "version": "2.0.11",
+    "version": "2.0.12",
     "description": "A typescript/javascript soap client for Exact Globe",
     "keywords": [
         "Exact globe",
@@ -22,8 +22,7 @@
         "url": "https://github.com/oudshoorn-hydraulics/exact-globe-soap-client.git"
     },
     "scripts": {
-        "compile": "tsup",
-        "build": "rm -rf ./dist && npm run compile",
+        "build": "tsup",
         "lint": "npx eslint .",
         "test:integration": "vitest --project=integration run",
         "test:unit": "vitest --project=unit run"
