@@ -2,7 +2,7 @@
     "compilerOptions": {
         "target": "esnext",
         "module": "esnext",
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
         "lib": ["esnext"],
         "strict": true,
         "esModuleInterop": true,
@@ -12,7 +12,6 @@
         "skipLibCheck": true,
         "verbatimModuleSyntax": true,
         "allowImportingTsExtensions": true,
-        "baseUrl": "./src",
         "outDir": "./lib"
     },
     "include": ["./src"],
