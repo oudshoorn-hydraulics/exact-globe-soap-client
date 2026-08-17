@@ -404,7 +404,7 @@ function getVarType(value: unknown): Effect.Effect<string, ExactError> {
         return Effect.succeed('boolean');
     }
     if (typeof value === 'number') {
-        return Effect.succeed(value % 1 === 0 ? 'int' : 'float');
+        return Effect.succeed(value % 1 === 0 ? 'int' : 'double');
     }
 
     return Effect.fail(new ExactError({message: 'Only primary types are allowed'}));
