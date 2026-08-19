@@ -12,6 +12,7 @@ registry=https://registry.npmjs.org
 ```
 
 Then run:
+
 ```
 npm install @oudshoorn-hydraulics/exact-globe-soap-client
 ```
@@ -19,20 +20,20 @@ npm install @oudshoorn-hydraulics/exact-globe-soap-client
 ## Examples:
 
 ```typescript
-import {soap} from "@oudshoorn-hydraulics/exact-globe-soap-client";
-import axios from "axios";
+import {soap} from '@oudshoorn-hydraulics/exact-globe-soap-client';
+import axios from 'axios';
 
 const soapConfig: soap.Config = {
-    soapHost: "http://192.168.1.1:8010",
-    dbHost: "SERVER_NAME\\host_name",
-    dbName: "database_name",
-    domain: "domain_name",
-    password: "password",
-    userId: "username"
-}
+    soapHost: 'http://192.168.1.1:8010',
+    dbHost: 'SERVER_NAME\\host_name',
+    dbName: 'database_name',
+    domain: 'domain_name',
+    password: 'password',
+    userId: 'username',
+};
 
 // Depending on the mode, the correct WSDL file is loaded.
-const client = await soap.createClient("single", soapConfig);
+const client = await soap.createClient('single', soapConfig);
 if (!client.success) {
     // handle error from ExactResult, available variables:
     //
@@ -44,10 +45,10 @@ if (!client.success) {
 
 // Send order line
 const linePropertyData: soap.InputPropertyData[] = [];
-linePropertyData.push({name: "ItemCode", value: "product-sku"});
-linePropertyData.push({name: "Quantity", value: 10});
+linePropertyData.push({name: 'ItemCode', value: 'product-sku'});
+linePropertyData.push({name: 'Quantity', value: 10});
 
-const result = await soap.create(client.data, "SalesOrderLine", linePropertyData);
+const result = await soap.create(client.data, 'SalesOrderLine', linePropertyData);
 if (!result.success) {
     // handle error.
 }
@@ -56,7 +57,7 @@ if (!result.success) {
 const transactionKey = result.data;
 
 // Load product
-const result = await retrieve(client.data, "Item", [{name: "ItemCode", value: "itemcode"}]);
+const result = await retrieve(client.data, 'Item', [{name: 'ItemCode', value: 'itemcode'}]);
 if (!result.success) {
     // handle error.
 }
