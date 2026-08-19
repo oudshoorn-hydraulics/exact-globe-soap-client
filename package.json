@@ -1,6 +1,6 @@
 {
     "name": "@oudshoorn-hydraulics/exact-globe-soap-client",
-    "version": "2.0.15",
+    "version": "2.0.16",
     "description": "A typescript/javascript soap client for Exact Globe",
     "keywords": [
         "Exact globe",
@@ -8,43 +8,44 @@
         "soap"
     ],
     "author": "Mathijs van de Venne",
-    "main": "dist/index.cjs",
-    "exports": {
-        ".": {
-            "types": "./dist/index.d.ts",
-            "require": "./dist/index.cjs",
-            "import": "./dist/index.js"
-        }
-    },
-    "type": "module",
     "repository": {
         "type": "git",
         "url": "https://github.com/oudshoorn-hydraulics/exact-globe-soap-client.git"
     },
+    "type": "module",
+    "main": "dist/index.cjs",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.mts",
+            "require": "./dist/index.cjs",
+            "import": "./dist/index.mjs"
+        }
+    },
     "scripts": {
-        "build": "tsup",
-        "lint": "npx eslint .",
+        "build": "tsdown",
+        "format": "oxfmt",
+        "lint": "oxlint",
         "test:integration": "vitest --project=integration run",
         "test:unit": "vitest --project=unit run"
     },
     "dependencies": {
         "@xmldom/xmldom": "^0.8.6",
-        "effect": "3.21.3",
         "soap": "^1.0.0"
     },
     "devDependencies": {
-        "@eslint/js": "^9.26.0",
         "@types/node": "^24.4.0",
         "@types/sax": "^1.2.4",
         "dotenv": "^17.4.2",
-        "eslint": "^9.26.0",
-        "eslint-config-prettier": "^10.1.2",
-        "prettier": "^3.4.2",
-        "prettier-plugin-organize-imports": "^4.3.0",
-        "tsup": "^8.5.1",
+        "effect": "3.21.3",
+        "oxfmt": "^0.59.0",
+        "oxlint": "^1.74.0",
+        "oxlint-tsgolint": "^7.0.2001",
+        "tsdown": "^0.22.2",
         "typescript": "^5.3.3",
-        "typescript-eslint": "^8.31.1",
         "vitest": "^4.1.10"
+    },
+    "peerDependencies": {
+        "effect": "3.21.3"
     },
     "engines": {
         "node": ">=24.0.0 <25.0.0"

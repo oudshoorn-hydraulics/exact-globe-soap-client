@@ -1,5 +1,6 @@
 import {Context, Effect, Layer, Schema as s} from 'effect';
 import {createClientAsync, NTLMSecurity} from 'soap';
+
 import {ExactError, parseExactError} from './error';
 import {parseNumber} from './utils';
 import {WsdlEntities} from './wsdl/entities.ts';
@@ -202,7 +203,11 @@ function create(
 /**
  * Retrieve a single entity.
  */
-function retrieve(client: Client, entityName: string, propertyData: InputPropertyData[]): Effect.Effect<ResultEntity | undefined, ExactError | ParseError> {
+function retrieve(
+    client: Client,
+    entityName: string,
+    propertyData: InputPropertyData[],
+): Effect.Effect<ResultEntity | undefined, ExactError | ParseError> {
     return Effect.gen(function* () {
         const args = yield* populateSingleArgs(entityName, propertyData);
         const soapResult = yield* Effect.tryPromise({
@@ -358,7 +363,11 @@ type CallSetPropertyBodyData = {
 /**
  * Map the Soap property data to a valid Exact soap object.
  */
-function populateSetArgs(entityName: string, propertyData: InputSetPropertyData[], batchSize: number): Effect.Effect<CallSetPropertyBodyData, ExactError> {
+function populateSetArgs(
+    entityName: string,
+    propertyData: InputSetPropertyData[],
+    batchSize: number,
+): Effect.Effect<CallSetPropertyBodyData, ExactError> {
     return Effect.gen(function* () {
         const queries: CallSetPropertyData[] = [];
 
